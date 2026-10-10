@@ -29,7 +29,7 @@ are viva-ready. Total: 13 decisions (C1–C13) + 10 questions.
 - C13 Only workload filters got new indexes; FK columns are already auto-indexed
   by InnoDB, so re-indexing them would be cargo cult.
 
-## построенческой Q&A (say each in 3–4 sentences)
+## Core Q&A (say each in 3–4 sentences)
 
 1. Two users book seat 12A on the same flight in the same second. What happens?
    Both INSERTs race; the UNIQUE(instance_id, seat_number) key admits the first

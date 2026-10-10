@@ -1,7 +1,7 @@
 -- ============================================================================
--- Bhaskar DBMS Project : Airline Ticket & Baggage System (multi-airport)
--- File 02 : staff hierarchy + access control  (MySQL 8.0)
--- Run      : SOURCE 02-staff-roles.sql;
+-- SkyRoute — File 02 : staff hierarchy + access control  (MySQL 8.0, v2)
+-- Run from dbms/ :  SOURCE schema/02-staff-roles.sql;
+-- v2: Crew_Assignments removed (roster link lives in the app instead).
 -- ============================================================================
 USE skyroute_db;
 
@@ -52,26 +52,10 @@ CREATE TABLE Ground_Staff (
     ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB;
 
--- One crew member cannot hold two roles on the SAME dated flight.
-CREATE TABLE Crew_Assignments (
-  assignment_id  INT AUTO_INCREMENT PRIMARY KEY,
-  employee_id    INT NOT NULL,
-  instance_id    INT NOT NULL,
-  role_on_flight VARCHAR(40) NOT NULL,
-  UNIQUE KEY uq_crew_duty (employee_id, instance_id),
-  CONSTRAINT fk_crewassign_employee FOREIGN KEY (employee_id)
-    REFERENCES Employees (employee_id)
-    ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT fk_crewassign_instance FOREIGN KEY (instance_id)
-    REFERENCES Flight_Instances (instance_id)
-    ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB;
-
 -- ============================================================================
 -- C11: ACCESS CONTROL (DCL). Three least-privilege roles.
--- Lesson applied: grant on the CORRECT database name. A grant on a misspelled
--- database name succeeds silently and protects nothing. Always SHOW GRANTS
--- afterwards to prove each role holds exactly what it should.
+-- Grant on the CORRECT database name: a grant on a misspelled name succeeds
+-- silently and protects nothing. SHOW GRANTS afterwards proves each role.
 -- ============================================================================
 CREATE USER IF NOT EXISTS 'sky_admin'@'localhost'  IDENTIFIED BY 'Admin@123';
 CREATE USER IF NOT EXISTS 'sky_staff'@'localhost'  IDENTIFIED BY 'Staff@123';

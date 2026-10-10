@@ -1,9 +1,11 @@
 -- ============================================================================
--- Bhaskar DBMS Project : Airline Ticket & Baggage System (multi-airport)
+-- SkyRoute : Airline Ticket & Baggage System (multi-airport) — SCHEMA v2
 -- File 01 : travel-core schema  (MySQL 8.0, InnoDB, utf8mb4)
--- Run      : SOURCE 01-travel-core.sql;  (from the mysql client)
--- Order    : 01 -> 02-staff-roles.sql -> seed_data.sql -> 03-advanced.sql
--- Decisions are recorded as C1..C9 comments. Learn them, they are viva answers.
+-- Run from dbms/ :  mysql -u root -p  ->  SOURCE schema/01-travel-core.sql;
+-- Order : 01 -> 02-staff-roles.sql -> seed -> queries -> advanced
+-- v2 changes: Flight_Instances renamed Departures (same concept, plain name),
+--             Runways table removed (gate + terminal cover the clash story).
+-- Decisions C1..C9 are viva answers. Learn them.
 -- ============================================================================
 
 DROP DATABASE IF EXISTS skyroute_db;
@@ -24,8 +26,8 @@ CREATE TABLE Airports (
 ) ENGINE=InnoDB;
 
 -- C2: Airline and Aircraft are separate masters, not free-text columns.
--- A free-text airline_name inside Flights (first-draft style) can never answer
--- "all aircraft of IndiGo" reliably. Masters make it a JOIN instead of a guess.
+-- A free-text airline_name inside Flights can never answer "all aircraft of
+-- IndiGo" reliably. Masters make it a JOIN instead of a guess.
 CREATE TABLE Airlines (
   airline_id   INT AUTO_INCREMENT PRIMARY KEY,
   airline_name VARCHAR(80) NOT NULL,
@@ -50,8 +52,8 @@ CREATE TABLE Aircraft (
 -- C3: A Flight is the TIMETABLE template (e.g. "6E-501 flies HYD->BLR daily at
 -- 08:00"). One row here can own unlimited dated departures. This split is what
 -- lets the system hold "as many flights as possible".
--- C4: departure AND arrival airports (first draft had only one). The CHECK
--- below makes a HYD->HYD nonsense row impossible at the database level.
+-- C4: departure AND arrival airports. The CHECK below makes a HYD->HYD nonsense
+-- row impossible at the database level.
 CREATE TABLE Flights (
   flight_id            INT AUTO_INCREMENT PRIMARY KEY,
   flight_number        VARCHAR(10) NOT NULL,
@@ -77,9 +79,9 @@ CREATE TABLE Flights (
   CONSTRAINT chk_flights_route CHECK (departure_airport_id <> arrival_airport_id)
 ) ENGINE=InnoDB;
 
--- C6: Terminal -> Gate -> Runway hang under one Airport. The composite UNIQUE
--- keys (terminal+gate_number) are the schema-level answer to gate clashes:
--- two rows can never claim the same physical gate.
+-- C6: Terminal -> Gate hang under one Airport. The composite UNIQUE keys are
+-- the schema-level answer to gate clashes: two rows can never claim the same
+-- physical gate of the same terminal.
 CREATE TABLE Terminals (
   terminal_id   INT AUTO_INCREMENT PRIMARY KEY,
   airport_id    INT NOT NULL,
@@ -104,47 +106,32 @@ CREATE TABLE Gates (
     ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB;
 
-CREATE TABLE Runways (
-  runway_id    INT AUTO_INCREMENT PRIMARY KEY,
-  airport_id   INT NOT NULL,
-  runway_code  VARCHAR(10) NOT NULL,
-  length_metre DECIMAL(7,2) NOT NULL CHECK (length_metre > 0),
-  runway_status ENUM('Active','Inactive','Maintenance') NOT NULL DEFAULT 'Active',
-  UNIQUE KEY uq_runway (airport_id, runway_code),
-  CONSTRAINT fk_runway_airport FOREIGN KEY (airport_id)
-    REFERENCES Airports (airport_id)
-    ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB;
-
--- C7: Flight_Instances is ONE dated departure of a Flight: actual times start
--- NULL and get filled in by operations, plus the aircraft/gate/runway actually
--- assigned that day. Status is a closed ENUM so junk values cannot enter.
-CREATE TABLE Flight_Instances (
-  instance_id         INT AUTO_INCREMENT PRIMARY KEY,
+-- C7: Departures holds ONE dated departure of a Flight: "6E-501 on Nov 3,
+-- boards 08:00 at gate G2". Actual times start NULL and get filled in by
+-- operations, plus the aircraft and gate actually assigned that day. Status is
+-- a closed ENUM so junk values cannot enter.
+CREATE TABLE Departures (
+  departure_id        INT AUTO_INCREMENT PRIMARY KEY,
   flight_id           INT NOT NULL,
   scheduled_departure DATETIME NOT NULL,
   scheduled_arrival   DATETIME NOT NULL,
   actual_departure    DATETIME NULL,
   actual_arrival      DATETIME NULL,
-  instance_status     ENUM('Scheduled','Boarding','Departed','Arrived','Delayed','Cancelled')
+  departure_status    ENUM('Scheduled','Boarding','Departed','Arrived','Delayed','Cancelled')
     NOT NULL DEFAULT 'Scheduled',
   aircraft_id INT NULL,
   gate_id     INT NULL,
-  runway_id   INT NULL,
-  UNIQUE KEY uq_instance (flight_id, scheduled_departure),
-  CONSTRAINT fk_instance_flight   FOREIGN KEY (flight_id)
+  UNIQUE KEY uq_departure (flight_id, scheduled_departure),
+  CONSTRAINT fk_departure_flight   FOREIGN KEY (flight_id)
     REFERENCES Flights (flight_id)
     ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT fk_instance_aircraft FOREIGN KEY (aircraft_id)
+  CONSTRAINT fk_departure_aircraft FOREIGN KEY (aircraft_id)
     REFERENCES Aircraft (aircraft_id)
     ON DELETE SET NULL ON UPDATE CASCADE,
-  CONSTRAINT fk_instance_gate     FOREIGN KEY (gate_id)
+  CONSTRAINT fk_departure_gate     FOREIGN KEY (gate_id)
     REFERENCES Gates (gate_id)
     ON DELETE SET NULL ON UPDATE CASCADE,
-  CONSTRAINT fk_instance_runway   FOREIGN KEY (runway_id)
-    REFERENCES Runways (runway_id)
-    ON DELETE SET NULL ON UPDATE CASCADE,
-  CONSTRAINT chk_instance_times CHECK (scheduled_arrival > scheduled_departure)
+  CONSTRAINT chk_departure_times CHECK (scheduled_arrival > scheduled_departure)
 ) ENGINE=InnoDB;
 
 CREATE TABLE Passengers (
@@ -159,25 +146,25 @@ CREATE TABLE Passengers (
   UNIQUE KEY uq_passenger_email (email)
 ) ENGINE=InnoDB;
 
--- C8: UNIQUE(instance_id, seat_number) kills double seat booking inside the
+-- C8: UNIQUE(departure_id, seat_number) kills double seat booking inside the
 -- database itself (problem statement #1). No application code needed; even a
 -- buggy app cannot insert a duplicate because the storage engine refuses.
 CREATE TABLE Bookings (
   booking_id   INT AUTO_INCREMENT PRIMARY KEY,
   passenger_id INT NOT NULL,
-  instance_id  INT NOT NULL,
+  departure_id INT NOT NULL,
   seat_number  VARCHAR(5) NOT NULL,
   travel_class ENUM('Economy','Premium Economy','Business','First') NOT NULL DEFAULT 'Economy',
   price        DECIMAL(10,2) NOT NULL CHECK (price >= 0),
   booking_status ENUM('Pending','Confirmed','Cancelled','Refunded')
     NOT NULL DEFAULT 'Confirmed',
   booked_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY uq_booking_seat (instance_id, seat_number),
+  UNIQUE KEY uq_booking_seat (departure_id, seat_number),
   CONSTRAINT fk_booking_passenger FOREIGN KEY (passenger_id)
     REFERENCES Passengers (passenger_id)
     ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT fk_booking_instance FOREIGN KEY (instance_id)
-    REFERENCES Flight_Instances (instance_id)
+  CONSTRAINT fk_booking_departure FOREIGN KEY (departure_id)
+    REFERENCES Departures (departure_id)
     ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB;
 
