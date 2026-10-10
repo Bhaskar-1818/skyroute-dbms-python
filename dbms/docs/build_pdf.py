@@ -109,7 +109,7 @@ pdf.cover(title, sub, meta)
 for kind, payload in rest:
     if kind == "h1":
         pdf.h1(payload)
-        if payload.startswith("6."):
+        if "Step 6:" in payload:
             headers, rows = SCHEMA_TABLE
             pdf.table(headers, rows)
     elif kind == "h2":

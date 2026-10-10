@@ -55,5 +55,5 @@ Date the run, paste the output or screenshot number next to each row.
 ## T8 — Scale (Step 10, eval: Output Accuracy)
 | # | Check | Expected |
 |---|-------|----------|
-| S-a | row-count table from 03-admin | 140 departures, ~14k bookings, ~17k bags |
-| S-b | A7 daily snapshot covers all 14 days | no gaps in the date range |
+| S-a | row-count table from 03-admin | 336 departures, ~34k bookings, ~42k bags |
+| S-b | A7 daily snapshot covers all 21 days | no gaps in the date range |

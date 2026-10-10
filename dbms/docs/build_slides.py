@@ -65,7 +65,7 @@ def cover():
     for txt, sz, col, bold in [
             ("SKYROUTE  ✈", 20, AMBER, True),
             ("Airline Ticket & Baggage System", 44, RGBColor(255, 255, 255), True),
-            ("Multi-airport database · 16 tables · 140 departures · ~14,000 bookings",
+            ("Multi-airport database · 16 tables · 336 departures · ~34,000 bookings",
              20, RGBColor(207, 227, 247), False),
             ("Views · trigger · procedure · transactions · indexes · Flask booking site",
              20, RGBColor(207, 227, 247), False)]:

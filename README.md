@@ -12,7 +12,7 @@ Two projects, one airline design, separate folders:
 ```sql
 SOURCE schema/01-travel-core.sql;   -- 12 travel tables
 SOURCE schema/02-staff-roles.sql;   -- staff hierarchy + 3 DB users
-SOURCE data/seed_data.sql;          -- 140 departures, ~14k bookings
+SOURCE data/seed_data.sql;          -- 336 departures, ~34k bookings
 SOURCE queries/01-joins.sql;        -- 10 join queries
 SOURCE queries/02-analytics.sql;    -- 8 analytics queries
 SOURCE queries/03-admin.sql;        -- counts + structure spot-checks

@@ -43,7 +43,7 @@ Read one answer, close the file, say it out loud in your own words, check.
 8. Isolation, demonstrated how? Two sessions: session 2 keeps seeing the old
    booking status while session 1's update is uncommitted (REPEATABLE READ),
    then sees the new value after COMMIT.
-9. Scale? Schema-wise unlimited; demonstrated 140 departures and ~14k bookings;
+9. Scale? Schema-wise unlimited; demonstrated 336 departures and ~34k bookings;
    NUM_DAYS / ROUTES knobs raise volume with zero design change.
 10. Baggage fee rule? 20 kg free per bag, Rs 500 per excess kg, computed in
     booking_receipt_view so every receipt agrees.

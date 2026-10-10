@@ -9,7 +9,7 @@ from datetime import date, timedelta
 
 random.seed(42)
 
-NUM_DAYS = 14
+NUM_DAYS = 21
 START_DAY = date(2026, 11, 1)
 AIRPORTS = [
     ("HYD", "Rajiv Gandhi International Airport", "Hyderabad"),
@@ -31,6 +31,12 @@ ROUTES = [
     (2, "DEL", "HYD", "SG-894", "20:00", "22:15", "Boeing 737-8", 189),
     (0, "HYD", "MAA", "6E-531", "11:45", "13:00", "ATR 72-600", 78),
     (2, "BOM", "DEL", "SG-901", "09:30", "11:40", "Boeing 737-8", 189),
+    (1, "HYD", "DEL", "AI-701", "09:05", "11:15", "Airbus A320neo", 180),
+    (1, "DEL", "BLR", "AI-702", "12:20", "15:00", "Airbus A320neo", 180),
+    (0, "BOM", "HYD", "6E-541", "07:40", "09:05", "Airbus A320neo", 180),
+    (2, "BLR", "MAA", "SG-902", "15:25", "16:30", "Boeing 737-700", 148),
+    (0, "MAA", "BOM", "6E-551", "19:10", "21:05", "Airbus A321neo", 222),
+    (2, "DEL", "MAA", "SG-903", "10:50", "13:45", "Boeing 737-8", 189),
 ]
 LOAD_MIN, LOAD_MAX = 0.35, 0.80
 FIRST = ["Aarav", "Ananya", "Arjun", "Diya", "Ishaan", "Kavya", "Krishna",
@@ -91,7 +97,7 @@ for day in range(NUM_DAYS):
         sdep = f"{d} {dt}:00"
         sarr = f"{d + timedelta(days=1) if at < dt else d} {at}:00"
         g = gate_of[airport_id[dep]][(r + day) % 4]
-        past = d < date(2026, 11, 8)
+        past = d < date(2026, 11, 11)
         st = "'Arrived'" if past else "'Scheduled'"
         ad = f"'{sdep}'" if past else "NULL"
         aa = f"'{sarr}'" if past else "NULL"

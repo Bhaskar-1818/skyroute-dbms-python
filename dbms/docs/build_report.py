@@ -33,7 +33,7 @@ for kind, payload in load():
         doc.add_paragraph(payload)
     elif kind == "h1":
         doc.add_heading(payload, level=1)
-        if payload.startswith("6."):
+        if "Step 6:" in payload:
             headers, rows = SCHEMA_TABLE
             table(headers, rows)
     elif kind == "h2":
