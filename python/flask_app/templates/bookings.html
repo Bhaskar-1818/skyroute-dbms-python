@@ -1,10 +1,23 @@
 {% extends "base.html" %}{% set page='bookings' %}{% block body %}
 <h2>My bookings <span class="mut">newest first · each ticket is one database row</span></h2>
+<div class="card">
+<form method="get" action="/bookings" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap">
+<div class="field" style="max-width:320px"><label>Show tickets of</label>
+<select name="pax" onchange="this.form.submit()">
+<option value="0">Everyone (admin view)</option>
+{% for t in travelers %}
+<option value="{{ t.passenger_id }}" {% if pax_id==t.passenger_id %}selected{% endif %}>{{ t.first_name }} {{ t.last_name }}</option>
+{% endfor %}</select></div>
+<noscript><button>Apply</button></noscript></form>
+{% if me %}<p class="mut">Filtered to <b>{{ me.first_name }} {{ me.last_name }}</b> — other passengers' tickets are hidden. <a href="/bookings?pax=0">Show everyone (admin view)</a></p>
+{% else %}<p class="mut">Showing <b>everyone</b> (admin view). Pick a traveler to see only their tickets.</p>{% endif %}
+</div>
 {% for b in rows %}
 <article class="ticket">
 <div class="stub">
 <div class="seat">{{ b.seat_number }}</div>
 <div class="fl">{{ b.flight_number }}</div>
+<div class="fl">SR-{{ 1000 + b.booking_id }}</div>
 <div class="fl">{{ b.scheduled_departure[11:16] }} · {{ b.gate_number or "—" }}</div>
 </div>
 <div class="tbody">

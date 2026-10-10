@@ -8,7 +8,7 @@ Run (from repo root):  python python/flask_app/seed_sqlite.py  (builds demo DB o
 import sqlite3
 from pathlib import Path
 
-from flask import Flask, flash, g, redirect, render_template, request, url_for
+from flask import Flask, flash, g, redirect, render_template, request, session, url_for
 
 ROOT = Path(__file__).resolve().parent
 DB = ROOT / "skyroute.db"
@@ -31,6 +31,18 @@ def close_db(exc):
     db = g.pop("db", None)
     if db is not None:
         db.close()
+
+
+@app.context_processor
+def traveler():
+    """Traveling-as badge for the header on every page (None = guest)."""
+    me = None
+    pid = session.get("pax_id")
+    if pid:
+        me = get_db().execute(
+            "SELECT first_name, last_name FROM Passengers WHERE passenger_id = ?",
+            (pid,)).fetchone()
+    return {"traveler": me}
 
 
 def seat_map(capacity, taken):
@@ -123,6 +135,7 @@ def book(departure_id):
             except sqlite3.IntegrityError:
                 flash(f"Seat {seat} was just taken by someone else. Pick a green seat.", "error")
             else:
+                session["pax_id"] = int(request.form["passenger_id"])
                 flash(f"Booked! Seat {seat} on {dep['flight_number']} (booking {bid}).", "ok")
                 return redirect(url_for("bookings"))
     grid = seat_map(dep["capacity"] or 180, taken)
@@ -134,8 +147,19 @@ def book(departure_id):
 @app.route("/bookings")
 def bookings():
     db = get_db()
+    # "Travel as" = simulated login. Pick a traveler once; this page then shows
+    # only their tickets. No pick = show everything, labeled as the admin view.
+    pick = request.args.get("pax")
+    if pick is not None:
+        session.pop("pax_id", None)
+        if pick.isdigit() and int(pick) > 0:
+            session["pax_id"] = int(pick)
+    pax_id = session.get("pax_id")
+    where, args = "", []
+    if pax_id:
+        where, args = "WHERE b.passenger_id = ?", [pax_id]
     rows = db.execute(
-        """SELECT b.*, p.first_name, p.last_name, f.flight_number, d.scheduled_departure,
+        f"""SELECT b.*, p.first_name, p.last_name, f.flight_number, d.scheduled_departure,
                   g.gate_number, pay.pay_status,
                   (SELECT COUNT(*) FROM Baggage WHERE booking_id = b.booking_id) AS bags,
                   COALESCE((SELECT SUM(MAX(weight_kg - 20, 0)) * 500 FROM Baggage
@@ -147,8 +171,22 @@ def bookings():
            JOIN Flights f ON d.flight_id = f.flight_id
            LEFT JOIN Gates g ON d.gate_id = g.gate_id
            LEFT JOIN Payments pay ON b.booking_id = pay.booking_id
-           ORDER BY b.booking_id DESC LIMIT 100""").fetchall()
-    return render_template("bookings.html", rows=rows)
+           {where}
+           ORDER BY b.booking_id DESC LIMIT 100""", args).fetchall()
+    travelers = db.execute(
+        "SELECT passenger_id, first_name, last_name FROM Passengers ORDER BY passenger_id LIMIT 120").fetchall()
+    me = None
+    if pax_id:
+        me = db.execute("SELECT first_name, last_name FROM Passengers WHERE passenger_id = ?",
+                        (pax_id,)).fetchone()
+    return render_template("bookings.html", rows=rows, travelers=travelers,
+                           me=me, pax_id=pax_id)
+
+
+@app.route("/travel-as/<int:pid>", methods=["POST"])
+def travel_as(pid):
+    session["pax_id"] = pid
+    return redirect(url_for("bookings"))
 
 
 @app.route("/bookings/<int:bid>/edit", methods=["POST"])

@@ -1,7 +1,7 @@
 {% extends "base.html" %}{% set page='pax' %}{% block body %}
 <div class="card">
 <h2>Passengers</h2>
-<p class="mut">Everyone who flies registers here first — then their name appears on the booking page.</p>
+<p class="mut">Everyone who flies registers here first — then their name appears on the booking page. Press <b>Travel as →</b> to become that traveler: My bookings will show only their tickets (your simulated login).</p>
 <form method="post">
 <input name="first_name" placeholder="First name" required style="max-width:170px">
 <input name="last_name" placeholder="Last name" required style="max-width:170px">
@@ -14,6 +14,8 @@
 {% for p in rows %}<tr>
 <td class="mono">{{ p.passenger_id }}</td><td><b>{{ p.first_name }} {{ p.last_name }}</b></td>
 <td class="mono">{{ p.passport_number or "—" }}</td><td class="mono">{{ p.phone }}</td><td>{{ p.email }}</td>
-<td><form class="inline" action="/passengers/{{ p.passenger_id }}/delete" method="post"
+<td><form class="inline" action="/travel-as/{{ p.passenger_id }}" method="post">
+<button class="ghost">Travel as →</button></form>
+<form class="inline" action="/passengers/{{ p.passenger_id }}/delete" method="post"
 onsubmit="return confirm('Delete this passenger and all their bookings?')">
 <button class="danger">Delete</button></form></td></tr>{% endfor %}</table></div>{% endblock %}

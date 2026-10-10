@@ -125,7 +125,15 @@ border-top:2px dashed var(--pebble)}.hero{padding:36px 24px 0}.how{display:none}
 <a href="/bookings" class="{{ 'here' if page=='bookings' else '' }}">My bookings</a>
 <a href="/passengers" class="{{ 'here' if page=='pax' else '' }}">Passengers</a>
 <a href="/admin" class="{{ 'here' if page=='admin' else '' }}">Admin</a>
-</nav></div></header>
+</nav>
+<span style="margin-left:auto"></span>
+{% if traveler %}
+<a class="tag ok" style="text-decoration:none" href="/bookings" title="Filtered to your tickets">
+Traveling as {{ traveler.first_name }} {{ traveler.last_name }}</a>
+{% else %}
+<a class="tag dim" style="text-decoration:none" href="/passengers" title="Pick who you are">
+Guest · all bookings visible</a>
+{% endif %}</div></header>
 <main><div class="wrap">
 {% with msgs = get_flashed_messages(with_categories=true) %}
 {% for cat, m in msgs %}<div class="flash {{ cat }}">{{ m }}</div>{% endfor %}{% endwith %}

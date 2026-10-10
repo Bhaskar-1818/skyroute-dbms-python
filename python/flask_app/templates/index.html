@@ -1,9 +1,10 @@
 {% extends "base.html" %}{% set page='search' %}{% block body %}
 <section class="hero">
-<div class="kicker">SkyRoute · 5 airports · 3 airlines</div>
+<div class="kicker">SkyRoute · 5 airports · 16 routes · 3 airlines</div>
 <h1>FLY FURTHER<span class="lime">.</span><br>PAY LESS<span class="lime">.</span></h1>
-<p class="sub">HYD ↔ BLR from Rs 4,500. Real seats, real bags, real money — every rule
-enforced by the database underneath.</p>
+<p class="sub">One search across the whole network — Delhi to Mumbai, Bengaluru to
+Delhi, Hyderabad to Chennai and thirteen more routes. Real seats, real bags,
+real money, one database underneath.</p>
 <div class="how">
 <span><b>1</b>Search a route</span><span><b>2</b>Pick a green seat</span>
 <span><b>3</b>Manage it under My bookings</span>
@@ -16,7 +17,17 @@ enforced by the database underneath.</p>
 <div class="field"><label>Date</label>
 <input type="date" name="day" value="2026-11-03" min="2026-11-01" max="2026-11-07" required></div>
 <div class="field" style="flex:0"><label>&nbsp;</label><button>Search departures</button></div>
-</form></section>
+<div style="flex-basis:100%;margin-top:10px"><span class="mut">Popular right now:</span>
+<button type="button" class="btn ghost small quick" data-dep="HYD" data-arr="BLR">HYD → BLR</button>
+<button type="button" class="btn ghost small quick" data-dep="DEL" data-arr="BOM">DEL → BOM</button>
+<button type="button" class="btn ghost small quick" data-dep="BLR" data-arr="DEL">BLR → DEL</button>
+<button type="button" class="btn ghost small quick" data-dep="MAA" data-arr="HYD">MAA → HYD</button></div>
+</form>
+<script>
+const sf=document.querySelector('.searchcard');
+document.querySelectorAll('.quick').forEach(b=>{b.onclick=()=>{
+sf.dep.value=b.dataset.dep;sf.arr.value=b.dataset.arr;sf.submit();};});
+</script></section>
 {% if results %}
 <div class="card">
 <h2>{{ results|length }} departures found</h2>

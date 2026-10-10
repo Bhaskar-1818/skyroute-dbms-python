@@ -92,5 +92,21 @@ assert b"cannot depart and arrive" in r.data or r.status_code == 302
 assert db.execute("SELECT COUNT(*) FROM Flights WHERE flight_number = 'SG-999'").fetchone()[0] == 0, \
     "HYD->HYD flight accepted!"
 print("admin + same-airport flight refused ok")
+
+r = c.post("/travel-as/1")
+assert r.status_code == 302
+r = c.get("/bookings")
+assert b"Filtered to" in r.data, "filter banner missing"
+mine = db.execute("SELECT COUNT(*) FROM Bookings WHERE passenger_id = 1").fetchone()[0]
+assert r.data.count(b"SR-") >= min(mine, 100), "filtered list wrong"
+print("travel-as filter ok")
+
+r = c.get("/bookings?pax=0")
+assert b"admin view" in r.data and b"SR-" in r.data, "admin view failed"
+print("admin view ok")
+
+r = c.get("/")
+assert b"Popular right now" in r.data and b"DEL" in r.data, "route chips missing"
+print("network chips ok")
 db.close()
 print("ALL APP TESTS PASSED")
