@@ -10,8 +10,13 @@
 --fog:#e8ebe6;--paper:#fff;--char:#454745;--obsidian:#0e0f0c;
 --pebble:#868685;--slate:#6a6c6a;--red:#cb272f;--line:#dfe4dc}
 *{box-sizing:border-box}
-body{font-family:'Inter',"Segoe UI",Arial,sans-serif;margin:0;background:var(--paper);
-color:var(--char);font-size:16px;-webkit-font-smoothing:antialiased}
+body{font-family:'Inter',"Segoe UI",Arial,sans-serif;margin:0;
+background:var(--forest);color:var(--char);font-size:16px;-webkit-font-smoothing:antialiased;
+background-image:radial-gradient(rgba(159,232,112,.06) 1px,transparent 1.1px);
+background-size:26px 26px}
+main>.wrap>h2{color:#fff}
+footer.site{border-top:1px solid rgba(255,255,255,.16);color:#cfe3c8}
+footer.site b{color:var(--lime)}
 .wrap{max-width:1200px;margin:0 auto;padding:0 24px}
 /* top nav: white, hairline bottom, pill section switcher */
 header.top{position:sticky;top:0;z-index:20;background:var(--paper);
@@ -44,6 +49,10 @@ font-size:14px;font-weight:500}
 .searchcard{background:var(--paper);border-radius:10px;padding:20px;
 margin:30px 0 -1px;display:flex;gap:10px;flex-wrap:wrap;align-items:end;
 box-shadow:0 10px 32px rgba(0,0,0,.18)}
+.searchcard .field{flex:2 1 150px;min-width:0}
+.searchcard .field:last-of-type{flex:0 0 auto}
+.searchcard button{flex:1 1 150px;max-width:230px;padding:12px 18px}
+@media (max-width:760px){.searchcard button{flex-basis:100%;max-width:none}}
 .field{display:flex;flex-direction:column;gap:4px;flex:1;min-width:150px}
 .field label{font-size:12px;font-weight:600;color:var(--slate);
 text-transform:uppercase;letter-spacing:.06em}
@@ -62,7 +71,7 @@ button.danger,.btn.danger{background:var(--paper);color:var(--red);border:1px so
 padding:8px 16px;font-size:14px}
 button.small,.btn.small{padding:8px 16px;font-size:14px}
 /* cards: fog surface, hairline ring, staggered entrance */
-.card{background:var(--fog);border-radius:10px;padding:24px;margin:20px 0;
+.card{background:var(--paper);border-radius:10px;padding:24px;margin:20px 0;
 box-shadow:rgba(14,15,12,.12) 0 0 0 1px;animation:rise .5s ease both}
 .card:nth-child(2){animation-delay:.06s}.card:nth-child(3){animation-delay:.12s}
 .card:nth-child(4){animation-delay:.18s}.card:nth-child(5){animation-delay:.24s}
@@ -112,9 +121,7 @@ animation:drop .3s ease both}
 .flash.ok{background:var(--mist);color:var(--forest)}
 .flash.error{background:#fbe4e4;color:var(--red)}
 @keyframes drop{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
-footer.site{border-top:1px solid var(--line);margin-top:48px;padding:22px 0 40px;
-color:var(--slate);font-size:13px}
-footer.site b{color:var(--forest)}
+footer.site{margin-top:48px;padding:22px 0 40px;font-size:13px}
 @media (max-width:760px){.ticket{grid-template-columns:1fr}.tbody{border-left:none;
 border-top:2px dashed var(--pebble)}.hero{padding:36px 24px 0}.how{display:none}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
