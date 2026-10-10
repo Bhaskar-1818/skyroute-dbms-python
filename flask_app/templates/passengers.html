@@ -1,0 +1,14 @@
+{% extends "base.html" %}{% block body %}
+<h2>Passengers</h2>
+<form method="post">
+<input name="first_name" placeholder="First name" required>
+<input name="last_name" placeholder="Last name" required>
+<input name="passport_number" placeholder="Passport (optional)">
+<input name="phone" placeholder="Phone" required>
+<input name="email" placeholder="Email" required><button>Add</button></form>
+<table><tr><th>ID</th><th>Name</th><th>Passport</th><th>Phone</th><th>Email</th><th></th></tr>
+{% for p in rows %}<tr>
+<td>{{ p.passenger_id }}</td><td>{{ p.first_name }} {{ p.last_name }}</td>
+<td>{{ p.passport_number or "-" }}</td><td>{{ p.phone }}</td><td>{{ p.email }}</td>
+<td><form class="inline" action="/passengers/{{ p.passenger_id }}/delete" method="post">
+<button>Delete</button></form></td></tr>{% endfor %}</table>{% endblock %}

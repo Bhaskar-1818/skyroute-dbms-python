@@ -1,0 +1,14 @@
+{% extends "base.html" %}{% block body %}
+<h2>Book {{ inst.flight_number }} ({{ inst.scheduled_departure }})</h2>
+{% if msg %}<p class="msg">{{ msg }}</p>{% endif %}
+<p>Taken seats: {{ taken|join(", ") or "none yet" }}</p>
+<form method="post">
+<select name="passenger_id">{% for p in passengers %}
+<option value="{{ p.passenger_id }}">{{ p.first_name }} {{ p.last_name }} ({{ p.email }})</option>{% endfor %}</select><br>
+Seat: <input name="seat" required size="4" placeholder="12A">
+Class: <select name="travel_class">
+<option>Economy</option><option>Premium Economy</option>
+<option>Business</option><option>First</option></select>
+Price Rs: <input name="price" value="4500" size="7" required>
+<button>Confirm booking</button></form>
+<p><a href="/passengers">New passenger? Add them here first.</a></p>{% endblock %}

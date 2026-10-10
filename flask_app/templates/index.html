@@ -1,0 +1,20 @@
+{% extends "base.html" %}{% block body %}
+<h2>Search flights</h2>
+{% if msg %}<p class="msg">{{ msg }}</p>{% endif %}
+<form method="post">
+<select name="dep">{% for a in airports %}
+<option value="{{ a.iata_code }}">{{ a.iata_code }} - {{ a.city }}</option>{% endfor %}</select>
+<select name="arr">{% for a in airports %}
+<option value="{{ a.iata_code }}">{{ a.iata_code }} - {{ a.city }}</option>{% endfor %}</select>
+<input type="date" name="day" value="2026-11-03" required>
+<button>Search</button></form>
+{% if results %}
+<table><tr><th>Flight</th><th>Airline</th><th>Departs</th><th>Arrives</th>
+<th>Gate</th><th>Status</th><th>Seats sold</th><th></th></tr>
+{% for r in results %}<tr>
+<td>{{ r.flight_number }}</td><td>{{ r.airline_name }}</td>
+<td>{{ r.scheduled_departure }}</td><td>{{ r.scheduled_arrival }}</td>
+<td>{{ r.gate_number or "-" }}</td><td>{{ r.instance_status }}</td>
+<td>{{ r.sold }}/{{ r.capacity }}</td>
+<td><a href="/book/{{ r.instance_id }}">Book</a></td></tr>{% endfor %}</table>
+{% endif %}{% endblock %}

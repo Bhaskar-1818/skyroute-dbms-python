@@ -1,0 +1,17 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>SkyRoute</title>
+<style>
+body{font-family:Arial,sans-serif;max-width:900px;margin:24px auto;padding:0 16px;color:#222}
+nav a{margin-right:14px;text-decoration:none;color:#0b5cad;font-weight:bold}
+table{border-collapse:collapse;width:100%;margin:12px 0}
+th,td{border:1px solid #bbb;padding:6px 8px;text-align:left;font-size:14px}
+th{background:#eef}
+.msg{color:#b00;font-weight:bold}
+form.inline{display:inline}
+input,select,button{padding:5px 8px;margin:2px}
+button{cursor:pointer}
+</style></head>
+<body>
+<nav><a href="/">Search</a><a href="/bookings">Bookings</a>
+<a href="/passengers">Passengers</a><a href="/admin">Admin</a></nav>
+<hr>{% block body %}{% endblock %}</body></html>

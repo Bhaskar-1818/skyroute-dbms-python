@@ -1,0 +1,21 @@
+{% extends "base.html" %}{% block body %}
+<h2>Admin dashboard</h2>
+<p>{% for k,v in counts.items() %}<b>{{ k }}:</b> {{ v }} &nbsp;{% endfor %}</p>
+<h3>Flights</h3>
+<table><tr><th>Number</th><th>Airline</th><th>Status</th><th></th></tr>
+{% for f in flights %}<tr>
+<td>{{ f.flight_number }}</td><td>{{ f.airline_name }}</td><td>{{ f.flight_status }}</td>
+<td><form class="inline" action="/flights/{{ f.flight_id }}/toggle" method="post">
+<button>Toggle Active/Suspended</button></form></td></tr>{% endfor %}</table>
+<h3>Add flight</h3>
+<form method="post">
+<input name="flight_number" placeholder="SG-999" required>
+<select name="airline_id">{% for a in airlines %}
+<option value="{{ a.airline_id }}">{{ a.airline_name }}</option>{% endfor %}</select>
+<select name="dep">{% for a in airports %}
+<option value="{{ a.airport_id }}">{{ a.iata_code }}</option>{% endfor %}</select>
+<select name="arr">{% for a in airports %}
+<option value="{{ a.airport_id }}">{{ a.iata_code }}</option>{% endfor %}</select>
+<input type="time" name="dep_t" value="08:00" required>
+<input type="time" name="arr_t" value="09:30" required>
+<button>Add</button></form>{% endblock %}
