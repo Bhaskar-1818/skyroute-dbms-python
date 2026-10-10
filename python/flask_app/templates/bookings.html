@@ -1,21 +1,30 @@
-{% extends "base.html" %}{% block body %}
-<h2>Bookings (latest 100)</h2>
-<table><tr><th>ID</th><th>Passenger</th><th>Flight</th><th>Departure</th>
-<th>Seat</th><th>Class</th><th>Price</th><th>Bag fee</th><th>Status</th><th>Payment</th><th>Actions</th></tr>
-{% for b in rows %}<tr>
-<td>{{ b.booking_id }}</td><td>{{ b.first_name }} {{ b.last_name }}</td>
-<td>{{ b.flight_number }}</td><td>{{ b.scheduled_departure }}</td>
-<td>{{ b.seat_number }}</td><td>{{ b.travel_class }}</td><td>{{ b.price }}</td>
-<td>{{ b.fee }}</td><td>{{ b.booking_status }}</td><td>{{ b.pay_status }}</td>
-<td>
+{% extends "base.html" %}{% set page='bookings' %}{% block body %}
+<h2>My bookings <span class="mut">(latest 100 — newest first)</span></h2>
+{% for b in rows %}
+<div class="card">
+<div><span class="flight">{{ b.flight_number }}</span>
+<span class="mono">{{ b.scheduled_departure }}</span>
+<span class="gate">{{ b.gate_number or "—" }}</span>
+<span class="pill {{ 'green' if b.booking_status=='Confirmed' else 'grey' }}">{{ b.booking_status }}</span>
+<span class="pill {{ 'green' if b.pay_status=='Paid' else 'amber' }}">{{ b.pay_status }}</span>
+{% if b.boarding %}<span class="pill green">{{ b.boarding }}</span>{% endif %}</div>
+<p><b>{{ b.first_name }} {{ b.last_name }}</b> · seat <b class="mono">{{ b.seat_number }}</b> ·
+{{ b.travel_class }} · Rs {{ b.price }} · {{ b.bags }} bag(s) ·
+baggage fee <b>Rs {{ b.fee }}</b></p>
+<div>
 <form class="inline" action="/bookings/{{ b.booking_id }}/edit" method="post">
-<input name="seat" value="{{ b.seat_number }}" size="4">
-<input name="travel_class" value="{{ b.travel_class }}" size="8">
-<input name="price" value="{{ b.price }}" size="6"><button>Save</button></form>
+<input name="seat" value="{{ b.seat_number }}" size="4" title="New seat">
+<select name="travel_class">
+{% for c in ['Economy','Premium Economy','Business','First'] %}
+<option {% if c==b.travel_class %}selected{% endif %}>{{ c }}</option>{% endfor %}</select>
+<input name="price" value="{{ b.price }}" size="6" title="New price">
+<button class="ghost">Save changes</button></form>
 <form class="inline" action="/baggage/{{ b.booking_id }}" method="post">
-<input name="weight" size="4" placeholder="kg" required><button>+Bag</button></form>
-<form class="inline" action="/payment/{{ b.booking_id }}/pay" method="post"><button>Paid</button></form>
-<form class="inline" action="/checkin/{{ b.booking_id }}" method="post"><button>Check-in</button></form>
-<form class="inline" action="/bookings/{{ b.booking_id }}/cancel" method="post"><button>Cancel</button></form>
-<form class="inline" action="/bookings/{{ b.booking_id }}/delete" method="post"><button>Delete</button></form>
-</td></tr>{% endfor %}</table>{% endblock %}
+<input name="weight" size="5" placeholder="bag kg" required><button class="ghost">+ Bag</button></form>
+<form class="inline" action="/payment/{{ b.booking_id }}/pay" method="post"><button class="ghost">Mark paid</button></form>
+<form class="inline" action="/checkin/{{ b.booking_id }}" method="post"><button class="ghost">Check in</button></form>
+<form class="inline" action="/bookings/{{ b.booking_id }}/cancel" method="post"><button class="ghost">Cancel</button></form>
+<form class="inline" action="/bookings/{{ b.booking_id }}/delete" method="post"><button class="danger">Delete</button></form>
+</div></div>
+{% else %}<div class="card"><p>No bookings yet. <a href="/">Search a flight and pick a seat.</a></p></div>
+{% endfor %}{% endblock %}

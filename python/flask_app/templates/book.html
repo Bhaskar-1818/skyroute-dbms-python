@@ -1,14 +1,32 @@
-{% extends "base.html" %}{% block body %}
-<h2>Book {{ inst.flight_number }} ({{ inst.scheduled_departure }})</h2>
-{% if msg %}<p class="msg">{{ msg }}</p>{% endif %}
-<p>Taken seats: {{ taken|join(", ") or "none yet" }}</p>
-<form method="post">
+{% extends "base.html" %}{% set page='search' %}{% block body %}
+<div class="card">
+<h2 style="margin-top:0"><span class="flight">{{ dep.flight_number }}</span>
+{{ dep.from_airport }} → {{ dep.to_airport }}</h2>
+<p class="mut">{{ dep.airline_name }} · {{ dep.model }} · departs
+<span class="mono">{{ dep.scheduled_departure }}</span> ·
+{{ dep.capacity - taken|length }} of {{ dep.capacity }} seats free</p>
+<h3>Pick your seat — green is free, grey is taken</h3>
+<form method="post" id="bookform">
 <select name="passenger_id">{% for p in passengers %}
-<option value="{{ p.passenger_id }}">{{ p.first_name }} {{ p.last_name }} ({{ p.email }})</option>{% endfor %}</select><br>
-Seat: <input name="seat" required size="4" placeholder="12A">
-Class: <select name="travel_class">
+<option value="{{ p.passenger_id }}">{{ p.first_name }} {{ p.last_name }} ({{ p.email }})</option>{% endfor %}</select>
+<select name="travel_class">
 <option>Economy</option><option>Premium Economy</option>
 <option>Business</option><option>First</option></select>
-Price Rs: <input name="price" value="4500" size="7" required>
-<button>Confirm booking</button></form>
-<p><a href="/passengers">New passenger? Add them here first.</a></p>{% endblock %}
+<input name="price" value="4500" size="7" required>
+<input type="hidden" name="seat" id="seatfield" required>
+<button>Book seat <span id="seatlabel" class="mono"></span></button></form>
+<div class="seats">
+{% for row in grid %}{% for s, is_taken in row %}
+<button type="button" data-seat="{{ s }}" {% if is_taken %}disabled{% endif %}>{{ s }}</button>
+{% endfor %}{% endfor %}</div>
+<p class="legend"><i style="background:#fff;border:2px solid #1b7fd4"></i>free
+<i style="background:#e3e9f0"></i>taken — the database refuses these (try one and see)</p>
+<p class="mut">New here? <a href="/passengers">Add yourself as a passenger first.</a></p>
+</div>
+<script>
+document.querySelectorAll('.seats button:not(:disabled)').forEach(b=>{
+b.onclick=()=>{document.getElementById('seatfield').value=b.dataset.seat;
+document.getElementById('seatlabel').textContent=b.dataset.seat;
+document.querySelectorAll('.seats button').forEach(x=>x.style.outline='');
+b.style.outline='3px solid #f5a623';};});
+</script>{% endblock %}

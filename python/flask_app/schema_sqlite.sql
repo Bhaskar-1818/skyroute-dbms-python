@@ -1,12 +1,6 @@
--- SkyRoute Flask project : SQLite-adapted schema (stdlib sqlite3, no ORM).
--- Same design as the MySQL build, translated where the dialects differ:
---   ENUM      -> TEXT + CHECK (SQLite has no ENUM type)
---   AUTO_INCR -> INTEGER PRIMARY KEY AUTOINCREMENT
---   DATETIME  -> TEXT in 'YYYY-MM-DD HH:MM:SS' (lexicographic = chronological)
--- Staff/HR tables are intentionally OUT of the app: the web project models
--- operations (search/book/bags/pay/check-in), not HR. Fewer tables, same rules.
--- Run: sqlite3 skyroute.db < schema_sqlite.sql   (or via seed_sqlite.py)
-
+-- SkyRoute Flask project : SQLite schema v2 (stdlib sqlite3, no ORM).
+-- Same design as the MySQL build: Departures (dated departures), no runways,
+-- no crew assignments. ENUM -> TEXT + CHECK. Run once via seed_sqlite.py.
 PRAGMA foreign_keys = ON;
 
 CREATE TABLE Airports (
@@ -74,29 +68,18 @@ CREATE TABLE Gates (
   UNIQUE (terminal_id, gate_number)
 );
 
-CREATE TABLE Runways (
-  runway_id    INTEGER PRIMARY KEY AUTOINCREMENT,
-  airport_id   INTEGER NOT NULL REFERENCES Airports (airport_id)
-               ON DELETE CASCADE ON UPDATE CASCADE,
-  runway_code  TEXT NOT NULL,
-  length_metre REAL NOT NULL CHECK (length_metre > 0),
-  UNIQUE (airport_id, runway_code)
-);
-
-CREATE TABLE Flight_Instances (
-  instance_id         INTEGER PRIMARY KEY AUTOINCREMENT,
+CREATE TABLE Departures (
+  departure_id        INTEGER PRIMARY KEY AUTOINCREMENT,
   flight_id           INTEGER NOT NULL REFERENCES Flights (flight_id)
                       ON DELETE CASCADE ON UPDATE CASCADE,
   scheduled_departure TEXT NOT NULL,
   scheduled_arrival   TEXT NOT NULL,
-  instance_status     TEXT NOT NULL DEFAULT 'Scheduled'
-                      CHECK (instance_status IN
+  departure_status    TEXT NOT NULL DEFAULT 'Scheduled'
+                      CHECK (departure_status IN
                         ('Scheduled','Boarding','Departed','Arrived','Delayed','Cancelled')),
   aircraft_id INTEGER REFERENCES Aircraft (aircraft_id)
               ON DELETE SET NULL ON UPDATE CASCADE,
   gate_id     INTEGER REFERENCES Gates (gate_id)
-              ON DELETE SET NULL ON UPDATE CASCADE,
-  runway_id   INTEGER REFERENCES Runways (runway_id)
               ON DELETE SET NULL ON UPDATE CASCADE,
   UNIQUE (flight_id, scheduled_departure),
   CHECK (scheduled_arrival > scheduled_departure)
@@ -118,7 +101,7 @@ CREATE TABLE Bookings (
   booking_id   INTEGER PRIMARY KEY AUTOINCREMENT,
   passenger_id INTEGER NOT NULL REFERENCES Passengers (passenger_id)
                ON DELETE CASCADE ON UPDATE CASCADE,
-  instance_id  INTEGER NOT NULL REFERENCES Flight_Instances (instance_id)
+  departure_id INTEGER NOT NULL REFERENCES Departures (departure_id)
                ON DELETE CASCADE ON UPDATE CASCADE,
   seat_number  TEXT NOT NULL,
   travel_class TEXT NOT NULL DEFAULT 'Economy'
@@ -127,7 +110,7 @@ CREATE TABLE Bookings (
   booking_status TEXT NOT NULL DEFAULT 'Confirmed'
                CHECK (booking_status IN ('Pending','Confirmed','Cancelled','Refunded')),
   booked_at    TEXT NOT NULL DEFAULT (datetime('now')),
-  UNIQUE (instance_id, seat_number)
+  UNIQUE (departure_id, seat_number)
 );
 
 CREATE TABLE Baggage (

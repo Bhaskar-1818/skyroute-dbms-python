@@ -1,20 +1,33 @@
-{% extends "base.html" %}{% block body %}
-<h2>Search flights</h2>
-{% if msg %}<p class="msg">{{ msg }}</p>{% endif %}
+{% extends "base.html" %}{% set page='search' %}{% block body %}
+<div class="hero">
+<h1>Fly HYD ↔ BLR <span>from Rs 4,500</span></h1>
+<p>Five airports. Three airlines. Real seats, real bags, real money — all tracked in one database.</p>
+<div class="how">
+<div><b>1.</b> Search a route and date below</div>
+<div><b>2.</b> Pick a green seat on the seat map</div>
+<div><b>3.</b> Manage everything under My bookings</div>
+</div></div>
+<div class="card">
+<h3 style="margin-top:0">Find your departure</h3>
 <form method="post">
 <select name="dep">{% for a in airports %}
-<option value="{{ a.iata_code }}">{{ a.iata_code }} - {{ a.city }}</option>{% endfor %}</select>
+<option value="{{ a.iata_code }}">{{ a.iata_code }} — {{ a.city }}</option>{% endfor %}</select>
 <select name="arr">{% for a in airports %}
-<option value="{{ a.iata_code }}">{{ a.iata_code }} - {{ a.city }}</option>{% endfor %}</select>
-<input type="date" name="day" value="2026-11-03" required>
-<button>Search</button></form>
+<option value="{{ a.iata_code }}">{{ a.iata_code }} — {{ a.city }}</option>{% endfor %}</select>
+<input type="date" name="day" value="2026-11-03" min="2026-11-01" max="2026-11-07" required>
+<button>Search departures</button></form></div>
 {% if results %}
-<table><tr><th>Flight</th><th>Airline</th><th>Departs</th><th>Arrives</th>
-<th>Gate</th><th>Status</th><th>Seats sold</th><th></th></tr>
+<div class="card">
+<h3 style="margin-top:0">{{ results|length }} departures found</h3>
+<table><tr><th>Flight</th><th>Departs</th><th>Arrives</th><th>Gate</th>
+<th>Status</th><th>Seats sold</th><th></th></tr>
 {% for r in results %}<tr>
-<td>{{ r.flight_number }}</td><td>{{ r.airline_name }}</td>
-<td>{{ r.scheduled_departure }}</td><td>{{ r.scheduled_arrival }}</td>
-<td>{{ r.gate_number or "-" }}</td><td>{{ r.instance_status }}</td>
-<td>{{ r.sold }}/{{ r.capacity }}</td>
-<td><a href="/book/{{ r.instance_id }}">Book</a></td></tr>{% endfor %}</table>
-{% endif %}{% endblock %}
+<td><span class="flight">{{ r.flight_number }}</span><br>
+<span class="mut">{{ r.airline_name }} · {{ r.model }}</span></td>
+<td class="mono">{{ r.scheduled_departure }}</td>
+<td class="mono">{{ r.scheduled_arrival }}</td>
+<td><span class="gate">{{ r.gate_number or "—" }}</span></td>
+<td><span class="pill {{ 'green' if r.departure_status=='Scheduled' else 'grey' }}">{{ r.departure_status }}</span></td>
+<td class="mono">{{ r.sold }}/{{ r.capacity }}</td>
+<td><a class="btn" href="/book/{{ r.departure_id }}">Choose seat</a></td></tr>{% endfor %}</table>
+</div>{% endif %}{% endblock %}

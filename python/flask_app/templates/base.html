@@ -1,17 +1,73 @@
 <!doctype html>
-<html><head><meta charset="utf-8"><title>SkyRoute</title>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SkyRoute — book a flight in 3 steps</title>
 <style>
-body{font-family:Arial,sans-serif;max-width:900px;margin:24px auto;padding:0 16px;color:#222}
-nav a{margin-right:14px;text-decoration:none;color:#0b5cad;font-weight:bold}
-table{border-collapse:collapse;width:100%;margin:12px 0}
-th,td{border:1px solid #bbb;padding:6px 8px;text-align:left;font-size:14px}
-th{background:#eef}
-.msg{color:#b00;font-weight:bold}
+:root{--ink:#0f2540;--sky:#1b7fd4;--amber:#f5a623;--paper:#f6f8fb;
+--ok:#1e9e6a;--bad:#d64545;--mut:#5b6b7f}
+*{box-sizing:border-box}
+body{font-family:"Segoe UI",Arial,sans-serif;margin:0;background:var(--paper);color:#222}
+header{background:var(--ink);color:#fff;padding:14px 0}
+.wrap{max-width:1000px;margin:0 auto;padding:0 18px}
+.brand{font-size:22px;font-weight:800;letter-spacing:.5px}
+.brand span{color:var(--amber)}
+nav.steps{margin-top:8px;font-size:14px}
+nav.steps a{color:#cfe3f7;text-decoration:none;margin-right:8px}
+nav.steps a.here{color:#fff;border-bottom:3px solid var(--amber);padding-bottom:2px}
+nav.steps b{color:var(--amber);margin:0 6px}
+main{padding:22px 0 60px}
+.card{background:#fff;border-radius:12px;padding:20px 22px;margin:16px 0;
+box-shadow:0 2px 10px rgba(15,37,64,.08)}
+.mono{font-family:Consolas,Menlo,monospace}
+.flight{font-family:Consolas,Menlo,monospace;font-weight:700;font-size:17px;color:var(--ink)}
+.gate{display:inline-block;background:var(--ink);color:#fff;border-radius:20px;
+padding:2px 12px;font-family:Consolas,monospace;font-size:13px}
+.pill{display:inline-block;border-radius:20px;padding:2px 12px;font-size:13px;color:#fff}
+.green{background:var(--ok)}.red{background:var(--bad)}.grey{background:var(--mut)}
+.amber{background:var(--amber);color:#3a2a00}
+table{border-collapse:collapse;width:100%;margin:10px 0}
+th,td{padding:8px 10px;text-align:left;font-size:14px;border-bottom:1px solid #e3e9f0}
+th{color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+input,select{padding:9px 10px;margin:4px 4px 4px 0;border:1px solid #c6d2de;border-radius:8px;font-size:14px}
+button,.btn{background:var(--amber);border:none;border-radius:8px;padding:10px 18px;
+font-size:15px;font-weight:700;color:#3a2a00;cursor:pointer;text-decoration:none;display:inline-block}
+button:hover,.btn:hover{filter:brightness(.94)}
+button.ghost{background:#e8eef4;color:var(--ink);font-weight:600;padding:7px 12px;font-size:13px}
+button.danger{background:var(--bad);color:#fff;padding:7px 12px;font-size:13px}
+.flash{border-radius:10px;padding:12px 16px;margin:12px 0;font-weight:600}
+.flash.ok{background:#e2f5ec;color:#0d6b45}
+.flash.error{background:#fde7e7;color:#a11f1f}
 form.inline{display:inline}
-input,select,button{padding:5px 8px;margin:2px}
-button{cursor:pointer}
+.hero{background:linear-gradient(120deg,var(--ink),#1b4d8f);color:#fff;border-radius:14px;
+padding:28px 30px;margin:6px 0 4px}
+.hero h1{margin:0 0 6px;font-size:30px}
+.hero h1 span{color:var(--amber)}
+.hero p{margin:4px 0;color:#cfe3f7}
+.how{display:flex;gap:12px;margin-top:14px;flex-wrap:wrap}
+.how div{background:rgba(255,255,255,.12);border-radius:10px;padding:10px 14px;font-size:14px}
+.how b{color:var(--amber)}
+.seats{display:grid;grid-template-columns:repeat(6,54px);gap:7px;margin:12px 0}
+.seats button{width:54px;height:44px;padding:0;font-family:Consolas,monospace;font-size:13px;
+background:#fff;border:2px solid var(--sky);color:var(--ink);border-radius:8px}
+.seats button:hover:not(:disabled){background:var(--amber);border-color:var(--amber)}
+.seats button:disabled{background:#e3e9f0;border-color:#e3e9f0;color:#8a97a5;cursor:not-allowed}
+.legend{font-size:13px;color:var(--mut)}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:4px;margin:0 4px -2px 12px}
+footer{color:var(--mut);font-size:12px;text-align:center;padding:20px}
+.mut{color:var(--mut);font-size:13px}
 </style></head>
 <body>
-<nav><a href="/">Search</a><a href="/bookings">Bookings</a>
-<a href="/passengers">Passengers</a><a href="/admin">Admin</a></nav>
-<hr>{% block body %}{% endblock %}</body></html>
+<header><div class="wrap">
+<div class="brand">SkyRoute <span>✈</span></div>
+<nav class="steps">
+<a href="/" class="{{ 'here' if page=='search' else '' }}">1 · Search</a><b>→</b>
+<a href="/bookings" class="{{ 'here' if page=='bookings' else '' }}">2 · My bookings</a><b>→</b>
+<a href="/passengers" class="{{ 'here' if page=='pax' else '' }}">Passengers</a><b>→</b>
+<a href="/admin" class="{{ 'here' if page=='admin' else '' }}">Admin</a>
+</nav></div></header>
+<main><div class="wrap">
+{% with msgs = get_flashed_messages(with_categories=true) %}
+{% for cat, m in msgs %}<div class="flash {{ cat }}">{{ m }}</div>{% endfor %}{% endwith %}
+{% block body %}{% endblock %}
+</div></main>
+<footer>SkyRoute demo · Flask + SQLite · baggage rule: 20 kg free, Rs 500 per extra kg</footer>
+</body></html>
