@@ -169,7 +169,7 @@ band(s, "Flask booking site: the database, clickable")
 body(s, [("3 steps", "Search → seat map → My bookings (http://127.0.0.1:5000)."),
          ("Seat map", "grey seats are the UNIQUE key made visible."),
          ("CRUD + fee", "edit · cancel · delete · 25 kg bag = Rs 2,500 fee."),
-         ("13 tests", "all passing, no server needed: test_app.py.")])
+         ("24 tests", "all passing, no server needed: test_app.py.")])
 
 s = prs.slides.add_slide(blank)
 band(s, "Result: every problem closed, everything tested")

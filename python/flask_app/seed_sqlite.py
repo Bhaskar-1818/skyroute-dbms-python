@@ -24,14 +24,16 @@ con.executescript((ROOT / "schema_sqlite.sql").read_text(encoding="utf-8"))
 AIRPORTS = [("HYD", "Rajiv Gandhi International Airport", "Hyderabad"),
             ("BLR", "Kempegowda International Airport", "Bengaluru"),
             ("BOM", "Chhatrapati Shivaji Maharaj International Airport", "Mumbai"),
-            ("DEL", "Indira Gandhi International Airport", "New Delhi")]
+            ("DEL", "Indira Gandhi International Airport", "New Delhi"),
+            ("MAA", "Chennai International Airport", "Chennai")]
 con.executemany(
     "INSERT INTO Airports (iata_code, airport_name, city) VALUES (?, ?, ?)", AIRPORTS)
 con.executemany(
     "INSERT INTO Airlines (airline_name, iata_code) VALUES (?, ?)",
     [("IndiGo", "6E"), ("Air India", "AI"), ("SpiceJet", "SG")])
 FLEET = [("VT-SK101", "Airbus A320neo", 180, 1), ("VT-SK102", "Airbus A321neo", 222, 1),
-         ("VT-SK201", "Airbus A321", 182, 2), ("VT-SK301", "Boeing 737-8", 189, 3)]
+         ("VT-SK201", "Airbus A321", 182, 2), ("VT-SK301", "Boeing 737-8", 189, 3),
+         ("VT-SK103", "ATR 72-600", 78, 1)]
 con.executemany(
     "INSERT INTO Aircraft (tail_number, model, capacity, airline_id) VALUES (?, ?, ?, ?)", FLEET)
 
@@ -40,13 +42,15 @@ SCHED = [  # (flight_no, airline, dep, arr, dep_t, arr_t, aircraft)
     ("6E-502", 1, 2, 1, "10:10:00", "11:30:00", 1),
     ("AI-654", 2, 4, 3, "07:15:00", "09:25:00", 3),
     ("SG-893", 3, 2, 4, "06:30:00", "09:10:00", 4),
-    ("6E-511", 1, 1, 3, "18:05:00", "19:35:00", 2)]
+    ("6E-511", 1, 1, 3, "18:05:00", "19:35:00", 2),
+    ("6E-561", 1, 5, 1, "07:30:00", "08:45:00", 5),
+    ("6E-562", 1, 1, 5, "19:20:00", "20:35:00", 5)]
 con.executemany(
     "INSERT INTO Flights (flight_number, airline_id, departure_airport_id, "
     "arrival_airport_id, sched_departure, sched_arrival) VALUES (?, ?, ?, ?, ?, ?)",
     [row[:6] for row in SCHED])
 
-for aid in (1, 2, 3, 4):
+for aid in (1, 2, 3, 4, 5):
     t = con.execute("INSERT INTO Terminals (airport_id, terminal_code, terminal_name) "
                     "VALUES (?, 'T1', ?)", (aid, f"T{aid} Main")).lastrowid
     for g in range(1, 4):
@@ -67,7 +71,7 @@ deps = []  # (did, day, cap)
 did = 0
 for day in range(7):
     d = date(2026, 11, 1) + timedelta(days=day)
-    for f in range(1, 6):
+    for f in range(1, 8):
         did += 1
         dep_t, arr_t = SCHED[f - 1][4], SCHED[f - 1][5]
         gate = con.execute(

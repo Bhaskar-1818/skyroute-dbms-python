@@ -9,6 +9,15 @@ from app import app  # noqa: E402
 
 c = app.test_client()
 c2 = app.test_client()  # stranger with no identity
+db = sqlite3.connect(Path(__file__).resolve().parent / "skyroute.db")
+
+
+def free_seat(dep_id, skip=()):
+    taken = {r[0] for r in db.execute(
+        "SELECT seat_number FROM Bookings WHERE departure_id = ?", (dep_id,))}
+    taken |= set(skip)
+    return next(f"{r}{l}" for r in range(1, 31) for l in "ABCDEF" if f"{r}{l}" not in taken)
+
 
 r = c2.get("/bookings")
 assert b"Who's traveling?" in r.data and b"SR-" not in r.data, "privacy gate failed"
@@ -21,6 +30,14 @@ r = c.post("/", data={"dep": "HYD", "arr": "BLR", "day": "2026-11-03"})
 assert r.status_code == 200 and b"6E-501" in r.data, "search failed"
 print("search HYD->BLR ok")
 
+r = c.post("/", data={"dep": "MAA", "arr": "HYD", "day": "2026-11-03"})
+assert r.status_code == 200 and b"6E-561" in r.data, "MAA chip search failed"
+print("search MAA->HYD ok")
+
+r = c.post("/", data={"arr": "BLR", "day": "2026-11-03"})
+assert r.status_code == 200 and b"Choose a departure" in r.data, "missing-field guard failed"
+print("missing-field guard ok")
+
 r = c.post("/", data={"dep": "HYD", "arr": "HYD", "day": "2026-11-03"})
 assert b"must differ" in r.data, "same-airport guard failed"
 print("same-airport refusal ok")
@@ -29,23 +46,31 @@ r = c.get("/book/1")
 assert r.status_code == 200 and b"Pick your seat" in r.data, "seat map page failed"
 print("seat map ok")
 
-r = c.post("/book/1", data={"passenger_id": "1", "seat": "99Z",
+seat_a = free_seat(1)
+r = c.post("/book/1", data={"passenger_id": "1", "seat": seat_a,
                             "travel_class": "Economy", "price": "4500"})
 assert r.status_code == 302, f"booking create failed: {r.status_code}"
 print("booking create ok")
 
 r = c.post("/book/1", data={"passenger_id": "2", "seat": "99Z",
                             "travel_class": "Economy", "price": "4500"})
+assert r.status_code == 200 and b"on this plane" in r.data, "bad-seat guard failed"
+assert db.execute("SELECT COUNT(*) FROM Bookings WHERE seat_number = '99Z'").fetchone()[0] == 0
+print("bad seat refused ok")
+
+r = c.post("/book/1", data={"passenger_id": "2", "seat": seat_a,
+                            "travel_class": "Economy", "price": "4500"})
 assert r.status_code == 200 and b"already taken" in r.data, "double-booking guard failed"
 print("double-booking refused ok")
 
-db = sqlite3.connect(Path(__file__).resolve().parent / "skyroute.db")
-bid = db.execute("SELECT booking_id FROM Bookings WHERE seat_number = '99Z'").fetchone()[0]
+bid = db.execute("SELECT booking_id FROM Bookings WHERE seat_number = ?",
+                 (seat_a,)).fetchone()[0]
 
+seat_b = free_seat(1, skip=[seat_a])
 c.post(f"/bookings/{bid}/edit",
-       data={"seat": "98Z", "travel_class": "Business", "price": "14000"})
+       data={"seat": seat_b, "travel_class": "Business", "price": "14000"})
 assert db.execute("SELECT seat_number FROM Bookings WHERE booking_id = ?",
-                  (bid,)).fetchone()[0] == "98Z", "edit failed"
+                  (bid,)).fetchone()[0] == seat_b, "edit failed"
 print("booking edit ok")
 
 c.post(f"/baggage/{bid}", data={"weight": "25"})
@@ -84,19 +109,35 @@ r = c.post("/passengers", data={"first_name": "Test", "last_name": "User",
                                 "email": "test.user@example.com"})
 assert r.status_code == 302
 pid = db.execute("SELECT passenger_id FROM Passengers WHERE email = 'test.user@example.com'").fetchone()[0]
-c.post(f"/passengers/{pid}/delete")
+r = c.post(f"/passengers/{pid}/delete", follow_redirects=True)
+assert b"Staff only" in r.data, "passenger delete not staff-gated"
 assert db.execute("SELECT COUNT(*) FROM Passengers WHERE passenger_id = ?",
-                  (pid,)).fetchone()[0] == 0, "passenger delete failed"
-print("passenger add/delete ok")
+                  (pid,)).fetchone()[0] == 1, "ungated delete went through!"
+print("passenger delete staff-gated ok")
 
 r = c.get("/admin")
-assert r.status_code == 200 and b"Timetable" in r.data, "admin failed"
+assert r.status_code == 200 and b"Staff only" in r.data, "admin not gated"
+r = c.post("/admin", data={"pin": "1234"}, follow_redirects=True)
+assert b"Timetable" in r.data, "admin unlock failed"
+print("admin PIN gate ok")
+
+r = c.post("/admin", data={"flight_number": "6E-501", "airline_id": "1", "dep": "1",
+                           "arr": "2", "dep_t": "08:00", "arr_t": "09:30"},
+           follow_redirects=True)
+assert b"already exists" in r.data, "duplicate flight not refused"
+print("duplicate flight refused ok")
+
 r = c.post("/admin", data={"flight_number": "SG-999", "airline_id": "3", "dep": "3",
-                           "arr": "3", "dep_t": "08:00", "arr_t": "09:30"})
-assert b"cannot depart and arrive" in r.data or r.status_code == 302
-assert db.execute("SELECT COUNT(*) FROM Flights WHERE flight_number = 'SG-999'").fetchone()[0] == 0, \
-    "HYD->HYD flight accepted!"
-print("admin + same-airport flight refused ok")
+                           "arr": "3", "dep_t": "08:00", "arr_t": "09:30"},
+           follow_redirects=True)
+assert b"cannot depart and arrive" in r.data
+assert db.execute("SELECT COUNT(*) FROM Flights WHERE flight_number = 'SG-999'").fetchone()[0] == 0
+print("same-airport flight refused ok")
+
+c.post(f"/passengers/{pid}/delete")
+assert db.execute("SELECT COUNT(*) FROM Passengers WHERE passenger_id = ?",
+                  (pid,)).fetchone()[0] == 0, "staff passenger delete failed"
+print("passenger add/delete ok")
 
 r = c.post("/travel-as/1")
 assert r.status_code == 302
