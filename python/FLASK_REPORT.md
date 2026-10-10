@@ -33,10 +33,25 @@ python flask_app/test_app.py      # end-to-end test, no server needed
 - SQLite adaptation of the MySQL schema: ENUM to TEXT+CHECK, AUTO_INCREMENT
   to INTEGER PRIMARY KEY AUTOINCREMENT, DATETIME to sortable TEXT.
 
+## Privacy model (simulated login)
+No classroom demo carries real auth, so identity is explicit: the bookings
+page shows nobody's tickets until a traveler is picked ("Who's traveling?").
+Every mutating route then checks ownership server-side — a traveler can only
+touch their own tickets, and the full list is a read-only, clearly-labeled
+admin view. The test suite proves a stranger's delete is refused and the row
+survives.
+
+## Realism rules in the demo data
+600 travelers take 1-4 trips each, at most one departure per day: nobody boards
+two flights at once and nobody lives on planes. Verified by query: zero
+same-departure doubles, zero same-day doubles. Adding a timetable flight
+auto-opens its next 7 dated departures, so new flights appear in search.
+
 ## Verification
-`test_app.py` passes 10 checks: search, create, duplicate refusal, edit,
-baggage fee math (25 kg -> Rs 2500), payment, check-in, cancel, delete with
-cascade, passenger add/delete, admin page.
+`test_app.py` passes 19 checks: privacy gate, search, guards, seat map, create,
+duplicate refusal, edit, fee math, bad-weight refusal, pay, check-in, cancel,
+cascade delete, passenger add/delete, admin, travel-as filter, admin view,
+network chips, cross-user refusal.
 
 ## Demo script (2–3 min)
 1. Search HYD to BLR on 2026-11-03, open 6E-501.

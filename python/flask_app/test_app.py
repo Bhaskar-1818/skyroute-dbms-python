@@ -8,6 +8,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from app import app  # noqa: E402
 
 c = app.test_client()
+c2 = app.test_client()  # stranger with no identity
+
+r = c2.get("/bookings")
+assert b"Who's traveling?" in r.data and b"SR-" not in r.data, "privacy gate failed"
+print("privacy gate (no identity, no tickets) ok")
 
 r = c.get("/")
 assert r.status_code == 200 and b"SkyRoute" in r.data, "home failed"
@@ -108,5 +113,12 @@ print("admin view ok")
 r = c.get("/")
 assert b"Popular right now" in r.data and b"DEL" in r.data, "route chips missing"
 print("network chips ok")
+
+victim = db.execute("SELECT booking_id FROM Bookings LIMIT 1").fetchone()[0]
+r = c2.post(f"/bookings/{victim}/delete", follow_redirects=True)
+assert b"isn&#39;t yours" in r.data or b"isn't yours" in r.data, "cross-user delete not refused"
+assert db.execute("SELECT COUNT(*) FROM Bookings WHERE booking_id = ?",
+                  (victim,)).fetchone()[0] == 1, "cross-user delete went through!"
+print("cross-user mutation refused ok")
 db.close()
 print("ALL APP TESTS PASSED")

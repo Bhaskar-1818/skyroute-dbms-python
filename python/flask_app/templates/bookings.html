@@ -1,16 +1,29 @@
 {% extends "base.html" %}{% set page='bookings' %}{% block body %}
 <h2>My bookings <span class="mut">newest first · each ticket is one database row</span></h2>
-<div class="card">
-<form method="get" action="/bookings" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap">
-<div class="field" style="max-width:320px"><label>Show tickets of</label>
+{% if gated %}
+<div class="card" style="text-align:center;padding:48px 24px">
+<h2>Who's traveling?</h2>
+<p class="mut">Tickets belong to travelers. Pick who you are first — then you'll see
+only your tickets, and only yours can be changed. Nothing of anyone else's is shown.</p>
+<form method="get" action="/bookings" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+<select name="pax" style="max-width:320px">{% for t in travelers %}
+<option value="{{ t.passenger_id }}">{{ t.first_name }} {{ t.last_name }}</option>
+{% endfor %}</select>
+<button>Show my tickets</button></form>
+<p class="mut">Staff? <a href="/bookings?pax=0">Open the admin view (everyone)</a></p>
+</div>
+{% else %}
+<div class="card" style="display:flex;gap:12px;align-items:end;flex-wrap:wrap">
+<form method="get" action="/bookings" style="display:flex;gap:10px;align-items:end">
+<div class="field" style="max-width:300px"><label>Show tickets of</label>
 <select name="pax" onchange="this.form.submit()">
 <option value="0">Everyone (admin view)</option>
 {% for t in travelers %}
 <option value="{{ t.passenger_id }}" {% if pax_id==t.passenger_id %}selected{% endif %}>{{ t.first_name }} {{ t.last_name }}</option>
 {% endfor %}</select></div>
 <noscript><button>Apply</button></noscript></form>
-{% if me %}<p class="mut">Filtered to <b>{{ me.first_name }} {{ me.last_name }}</b> — other passengers' tickets are hidden. <a href="/bookings?pax=0">Show everyone (admin view)</a></p>
-{% else %}<p class="mut">Showing <b>everyone</b> (admin view). Pick a traveler to see only their tickets.</p>{% endif %}
+{% if me %}<p class="mut">Filtered to <b>{{ me.first_name }} {{ me.last_name }}</b> — nobody else's tickets are shown or touchable. <a href="/bookings?pax=0">Show everyone</a></p>
+{% else %}<p class="mut"><b>Admin view:</b> everyone's tickets, read-only. Pick a traveler to manage tickets.</p>{% endif %}
 </div>
 {% for b in rows %}
 <article class="ticket">
@@ -27,19 +40,26 @@
 <p><span class="tag {{ 'ok' if b.booking_status=='Confirmed' else 'dim' }}">{{ b.booking_status }}</span>
 <span class="tag {{ 'dark' if b.pay_status=='Paid' else 'warn' }}">{{ b.pay_status }}</span>
 {% if b.boarding %}<span class="tag ok">{{ b.boarding }}</span>{% endif %}</p>
+{% if pax_id %}
 <div class="actions">
 <form class="inline" action="/bookings/{{ b.booking_id }}/edit" method="post">
-<input name="seat" value="{{ b.seat_number }}" size="4" title="New seat">
-<select name="travel_class" style="width:auto">{% for c in ['Economy','Premium Economy','Business','First'] %}
+<input name="seat" value="{{ b.seat_number }}" title="New seat" style="width:64px">
+<select name="travel_class" style="width:150px">{% for c in ['Economy','Premium Economy','Business','First'] %}
 <option {% if c==b.travel_class %}selected{% endif %}>{{ c }}</option>{% endfor %}</select>
-<input name="price" value="{{ b.price }}" size="6" title="New price">
-<button class="ghost">Save changes</button></form>
+<input name="price" value="{{ b.price }}" title="New price" style="width:90px">
+<button class="ghost">Save</button></form>
 <form class="inline" action="/baggage/{{ b.booking_id }}" method="post">
-<input name="weight" size="5" placeholder="bag kg" required style="width:90px"><button class="ghost">+ Bag</button></form>
+<input name="weight" placeholder="bag kg" required style="width:80px"><button class="ghost">+ Bag</button></form>
 <form class="inline" action="/payment/{{ b.booking_id }}/pay" method="post"><button class="ghost">Mark paid</button></form>
 <form class="inline" action="/checkin/{{ b.booking_id }}" method="post"><button class="ghost">Check in</button></form>
 <form class="inline" action="/bookings/{{ b.booking_id }}/cancel" method="post"><button class="ghost">Cancel</button></form>
-<form class="inline" action="/bookings/{{ b.booking_id }}/delete" method="post"><button class="danger">Delete</button></form>
-</div></div></article>
+<form class="inline" action="/bookings/{{ b.booking_id }}/delete" method="post"
+onsubmit="return confirm('Delete booking SR-{{ 1000 + b.booking_id }} and its bags, payment and check-in?')"><button class="danger">Delete</button></form>
+</div>
+{% else %}
+<p class="mut">Read-only in admin view — travel as {{ b.first_name }} {{ b.last_name }} to manage this ticket.</p>
+{% endif %}
+</div></article>
 {% else %}<div class="card"><p>No bookings yet. <a href="/">Search a flight and pick a seat.</a></p></div>
-{% endfor %}{% endblock %}
+{% endfor %}
+{% endif %}{% endblock %}

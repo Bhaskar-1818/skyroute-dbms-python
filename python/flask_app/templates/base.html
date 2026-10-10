@@ -27,7 +27,9 @@ padding:8px 16px;border-radius:9999px;transition:background .2s ease}
 .segments a.here{background:var(--forest);color:#fff}
 /* hero: dark forest section, block display type, lime punctuation */
 .hero{background:var(--forest);color:#fff;border-radius:28px;margin:32px 0 0;
-padding:56px 48px 0;overflow:hidden;position:relative}
+padding:56px 48px 0;overflow:hidden;position:relative;
+background-image:radial-gradient(rgba(159,232,112,.13) 1.2px,transparent 1.3px);
+background-size:26px 26px}
 .hero .kicker{color:var(--lime);font-weight:600;font-size:14px;letter-spacing:.14em;
 text-transform:uppercase}
 .hero h1{font-size:clamp(44px,7vw,96px);line-height:.95;letter-spacing:-.03em;
@@ -49,16 +51,16 @@ select,input{font:inherit;padding:12px 14px;border:1px solid var(--pebble);
 border-radius:10px;background:var(--paper);color:var(--char);width:100%}
 select:focus,input:focus{outline:none;border-color:var(--forest)}
 /* pill CTA: lime fill does all the work */
-.btn{background:var(--lime);color:var(--forest);border:none;border-radius:9999px;
+button,.btn{background:var(--lime);color:var(--forest);border:none;border-radius:9999px;
 padding:12px 26px;font-size:16px;font-weight:600;cursor:pointer;text-decoration:none;
 display:inline-block;transition:transform .18s ease,filter .18s ease;white-space:nowrap}
-.btn:hover{filter:brightness(.96);transform:translateY(-1px)}
-.btn:active{transform:translateY(0) scale(.98)}
-.btn.ghost{background:var(--paper);color:var(--forest);border:1px solid var(--forest);
+button:hover,.btn:hover{filter:brightness(.96);transform:translateY(-1px)}
+button:active,.btn:active{transform:translateY(0) scale(.98)}
+button.ghost,.btn.ghost{background:var(--paper);color:var(--forest);border:1px solid var(--forest);
 padding:8px 16px;font-size:14px}
-.btn.danger{background:var(--paper);color:var(--red);border:1px solid var(--red);
+button.danger,.btn.danger{background:var(--paper);color:var(--red);border:1px solid var(--red);
 padding:8px 16px;font-size:14px}
-.btn.small{padding:8px 16px;font-size:14px}
+button.small,.btn.small{padding:8px 16px;font-size:14px}
 /* cards: fog surface, hairline ring, staggered entrance */
 .card{background:var(--fog);border-radius:10px;padding:24px;margin:20px 0;
 box-shadow:rgba(14,15,12,.12) 0 0 0 1px;animation:rise .5s ease both}

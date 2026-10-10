@@ -1,6 +1,10 @@
 """Builds python/flask_app/skyroute.db from schema_sqlite.sql (v2).
 Stdlib sqlite3 only, deterministic (seed 7). Run from repo root:
     python python/flask_app/seed_sqlite.py
+
+Realism rules (the demo must survive scrutiny): each traveler takes 1-4
+trips, at most one departure per day, so nobody boards two flights at once
+and nobody lives on planes. Seats never double-sell per departure.
 """
 import random
 import sqlite3
@@ -50,12 +54,14 @@ for aid in (1, 2, 3, 4):
 
 FIRST = ["Aarav", "Ananya", "Arjun", "Diya", "Kavya", "Meera", "Rahul", "Riya", "Rohan", "Sneha"]
 LAST = ["Sharma", "Rao", "Singh", "Reddy", "Nair", "Gupta", "Iyer", "Kumar"]
-for i in range(1, 121):
+N_PAX, MAX_TRIPS = 600, 4
+for i in range(1, N_PAX + 1):
     fn, ln = random.choice(FIRST), random.choice(LAST)
     con.execute("INSERT INTO Passengers (first_name, last_name, passport_number, phone, email) "
                 "VALUES (?, ?, ?, ?, ?)",
                 (fn, ln, f"D{200000 + i}", f"98{10000000 + i}", f"{fn.lower()}.{ln.lower()}{i}@example.com"))
 
+deps = []  # (did, day, cap)
 did = 0
 for day in range(7):
     d = date(2026, 11, 1) + timedelta(days=day)
@@ -68,19 +74,31 @@ for day in range(7):
         con.execute("INSERT INTO Departures (flight_id, scheduled_departure, scheduled_arrival, "
                     "departure_status, aircraft_id, gate_id) VALUES (?, ?, ?, 'Scheduled', ?, ?)",
                     (f, f"{d} {dep_t}", f"{d} {arr_t}", SCHED[f - 1][6], gate))
-        cap = FLEET[SCHED[f - 1][6] - 1][2]
-        seats = [f"{r}{l}" for r in range(1, cap // 6 + 2) for l in "ABCDEF"][:cap]
-        for seat in random.sample(seats, max(1, int(cap * random.uniform(0.3, 0.7)))):
-            pax = random.randint(1, 120)
-            price = 4500 + random.randint(-300, 900)
-            bid = con.execute("INSERT INTO Bookings (passenger_id, departure_id, seat_number, price) "
-                              "VALUES (?, ?, ?, ?)", (pax, did, seat, price)).lastrowid
-            con.execute("INSERT INTO Payments (booking_id, amount, pay_method, pay_status, txn_reference) "
-                        "VALUES (?, ?, 'UPI', 'Paid', ?)", (bid, price, f"TXNAPP{100000 + bid}"))
-            con.execute("INSERT INTO Baggage (booking_id, baggage_seq, weight_kg) VALUES (?, 1, ?)",
-                        (bid, round(random.uniform(5, 20) if random.random() < 0.8
-                                     else random.uniform(20.5, 32), 2)))
+        deps.append((did, day, FLEET[SCHED[f - 1][6] - 1][2]))
+
+trips = [0] * (N_PAX + 1)
+daybooked = [set() for _ in range(N_PAX + 1)]
+for did, day, cap in sorted(deps, key=lambda _: random.random()):
+    want = max(1, int(cap * random.uniform(0.10, 0.22)))
+    elig = [p for p in range(1, N_PAX + 1)
+            if trips[p] < MAX_TRIPS and day not in daybooked[p]]
+    chosen = random.sample(elig, min(want, len(elig)))
+    seats = [f"{r}{l}" for r in range(1, cap // 6 + 2) for l in "ABCDEF"][:cap]
+    for pax, seat in zip(chosen, random.sample(seats, len(chosen))):
+        price = 4500 + random.randint(-300, 900)
+        bid = con.execute("INSERT INTO Bookings (passenger_id, departure_id, seat_number, price) "
+                          "VALUES (?, ?, ?, ?)", (pax, did, seat, price)).lastrowid
+        con.execute("INSERT INTO Payments (booking_id, amount, pay_method, pay_status, txn_reference) "
+                    "VALUES (?, ?, 'UPI', 'Paid', ?)", (bid, price, f"TXNAPP{100000 + bid}"))
+        con.execute("INSERT INTO Baggage (booking_id, baggage_seq, weight_kg) VALUES (?, 1, ?)",
+                    (bid, round(random.uniform(5, 20) if random.random() < 0.8
+                                 else random.uniform(20.5, 32), 2)))
+        trips[pax] += 1
+        daybooked[pax].add(day)
+
 con.commit()
 n = lambda t: con.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
-print(f"departures={n('Departures')} bookings={n('Bookings')} bags={n('Baggage')} payments={n('Payments')}")
+top = con.execute("SELECT passenger_id, COUNT(*) c FROM Bookings GROUP BY 1 ORDER BY c DESC LIMIT 1").fetchone()
+print(f"departures={n('Departures')} bookings={n('Bookings')} bags={n('Baggage')} "
+      f"max trips by one traveler={top[1]}")
 con.close()

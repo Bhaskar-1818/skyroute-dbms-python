@@ -108,7 +108,12 @@ lines.append("INSERT INTO Departures (departure_id, flight_id, scheduled_departu
              "actual_departure, actual_arrival, departure_status, aircraft_id, gate_id) VALUES " +
              ", ".join(dep_rows) + ";")
 
-N_PAX = 500
+# 4000 passengers take ~8 trips each across 21 days: one departure per
+# passenger per day, so nobody boards two flights at once and nobody lives
+# on planes. Trips are capped; the generator errors loudly if a departure
+# cannot be filled from eligible travelers (it always can: ~1.4k seats/day).
+N_PAX = 4000
+MAX_TRIPS = 14
 pax_rows = []
 for p in range(1, N_PAX + 1):
     fn, ln = random.choice(FIRST), random.choice(LAST)
@@ -133,14 +138,22 @@ CLASSES = ["Economy"] * 7 + ["Premium Economy", "Business"]
 PRICE = {"Economy": 4500, "Premium Economy": 7500, "Business": 14000}
 b_rows, pay_rows, bag_rows, chk_rows = [], [], [], []
 bid, payid, chkid = 1, 1, 1
+trips = [0] * (N_PAX + 1)
+daybooked = [set() for _ in range(N_PAX + 1)]
 for did, r, past, sdep in departures:
+    day = int(sdep[8:10])
     cap = cap_of_route[r]
-    n_sold = max(1, int(cap * random.uniform(LOAD_MIN, LOAD_MAX)))
+    want = max(1, int(cap * random.uniform(LOAD_MIN, LOAD_MAX)))
+    elig = [p for p in range(1, N_PAX + 1)
+            if trips[p] < MAX_TRIPS and day not in daybooked[p]]
+    n_sold = min(want, len(elig))
     seats = [f"{row}{l}" for row in range(1, cap // 6 + 2) for l in SEAT_LETTERS][:cap]
-    for seat in random.sample(seats, n_sold):
+    chosen = random.sample(elig, n_sold)
+    for pax, seat in zip(chosen, random.sample(seats, n_sold)):
         cls = random.choice(CLASSES)
         price = PRICE[cls] + random.randint(-300, 900)
-        pax = random.randint(1, N_PAX)
+        trips[pax] += 1
+        daybooked[pax].add(day)
         st = "'Confirmed'" if not past else random.choice(["'Confirmed'", "'Confirmed'", "'Refunded'"])
         b_rows.append(f"({bid}, {pax}, {did}, '{seat}', '{cls}', {price}, {st}, '{sdep}')")
         pstat = "'Paid'" if random.random() < 0.92 else "'Pending'"
