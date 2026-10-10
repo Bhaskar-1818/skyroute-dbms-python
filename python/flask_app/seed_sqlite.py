@@ -54,7 +54,9 @@ for aid in (1, 2, 3, 4):
 
 FIRST = ["Aarav", "Ananya", "Arjun", "Diya", "Kavya", "Meera", "Rahul", "Riya", "Rohan", "Sneha"]
 LAST = ["Sharma", "Rao", "Singh", "Reddy", "Nair", "Gupta", "Iyer", "Kumar"]
-N_PAX, MAX_TRIPS = 600, 4
+N_PAX = 600
+# Trip budgets: most travelers fly once, some twice, nobody more. This keeps
+# every traveler's story believable: no 14-trip frequent flyers in a demo.
 for i in range(1, N_PAX + 1):
     fn, ln = random.choice(FIRST), random.choice(LAST)
     con.execute("INSERT INTO Passengers (first_name, last_name, passport_number, phone, email) "
@@ -78,10 +80,11 @@ for day in range(7):
 
 trips = [0] * (N_PAX + 1)
 daybooked = [set() for _ in range(N_PAX + 1)]
+budget = [0] + [1 if random.random() < 0.7 else 2 for _ in range(N_PAX)]
 for did, day, cap in sorted(deps, key=lambda _: random.random()):
     want = max(1, int(cap * random.uniform(0.10, 0.22)))
     elig = [p for p in range(1, N_PAX + 1)
-            if trips[p] < MAX_TRIPS and day not in daybooked[p]]
+            if trips[p] < budget[p] and day not in daybooked[p]]
     chosen = random.sample(elig, min(want, len(elig)))
     seats = [f"{r}{l}" for r in range(1, cap // 6 + 2) for l in "ABCDEF"][:cap]
     for pax, seat in zip(chosen, random.sample(seats, len(chosen))):

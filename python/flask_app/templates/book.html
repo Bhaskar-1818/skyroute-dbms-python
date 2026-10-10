@@ -18,6 +18,12 @@ refuses those, and the page will tell you so if you try.</p>
 <input name="price" value="4500" size="7" required style="max-width:120px">
 <input type="hidden" name="seat" id="seatfield" required>
 <button>Book seat <span id="seatlabel" class="mono"></span></button></form>
+<div class="fare" id="farebox" style="display:none">
+<div class="row"><span>Seat <b id="fseat" class="mono"></b> · <span id="fclass">Economy</span></span>
+<span>Rs <b id="fprice">4500</b></span></div>
+<div class="row"><span>Baggage allowance included</span><span>20 kg free</span></div>
+<div class="row total"><span>Total due</span><b>Rs <span id="ftotal">4500</span></b></div>
+</div>
 <div class="seats" id="cabin">
 {% for row in grid %}{% for s, is_taken in row %}
 {% if loop.index0 == 3 %}<span class="aisle"></span>{% endif %}
@@ -27,7 +33,17 @@ refuses those, and the page will tell you so if you try.</p>
 </div>
 <script>
 const field=document.getElementById('seatfield'),label=document.getElementById('seatlabel');
+const farebox=document.getElementById('farebox');
+const clsSel=document.querySelector('select[name="travel_class"]');
+const priceIn=document.querySelector('input[name="price"]');
+function refreshFare(){
+document.getElementById('fseat').textContent=field.value||'—';
+document.getElementById('fclass').textContent=clsSel.value;
+document.getElementById('fprice').textContent=priceIn.value||'0';
+document.getElementById('ftotal').textContent=priceIn.value||'0';}
+clsSel.onchange=refreshFare;priceIn.oninput=refreshFare;
 document.querySelectorAll('#cabin button:not(:disabled)').forEach(b=>{
 b.onclick=()=>{document.querySelectorAll('#cabin button').forEach(x=>x.classList.remove('picked'));
-b.classList.add('picked');field.value=b.dataset.seat;label.textContent=b.dataset.seat;};});
+b.classList.add('picked');field.value=b.dataset.seat;label.textContent=b.dataset.seat;
+farebox.style.display='block';refreshFare();};});
 </script>{% endblock %}

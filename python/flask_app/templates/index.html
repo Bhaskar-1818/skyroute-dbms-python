@@ -40,6 +40,8 @@ sf.dep.value=b.dataset.dep;sf.arr.value=b.dataset.arr;sf.submit();};});
 <td class="mono">{{ r.scheduled_arrival }}</td>
 <td><span class="tag gate">{{ r.gate_number or "—" }}</span></td>
 <td><span class="tag {{ 'ok' if r.departure_status=='Scheduled' else 'dim' }}">{{ r.departure_status }}</span></td>
-<td class="mono">{{ r.sold }}/{{ r.capacity or "—" }}</td>
+<td class="mono">{{ r.sold }}/{{ r.capacity or "—" }}<br>
+{% if r.capacity and r.capacity - r.sold <= 12 %}
+<span class="tag bad">Only {{ r.capacity - r.sold }} left</span>{% endif %}</td>
 <td><a class="btn small" href="/book/{{ r.departure_id }}">Choose seat</a></td></tr>{% endfor %}</table>
 </div>{% endif %}{% endblock %}

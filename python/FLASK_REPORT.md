@@ -11,7 +11,7 @@ plain HTML/CSS (sufficient per the notice), SQLite file `skyroute.db`.
 
 ## Setup and run
 ```
-python flask_app/seed_sqlite.py   # builds skyroute.db (35 departures, ~3.4k bookings)
+python flask_app/seed_sqlite.py   # builds skyroute.db (35 departures, ~780 bookings)
 python flask_app/app.py           # serves http://127.0.0.1:5000
 python flask_app/test_app.py      # end-to-end test, no server needed
 ```
@@ -48,7 +48,7 @@ same-departure doubles, zero same-day doubles. Adding a timetable flight
 auto-opens its next 7 dated departures, so new flights appear in search.
 
 ## Verification
-`test_app.py` passes 19 checks: privacy gate, search, guards, seat map, create,
+`test_app.py` passes 18 checks: privacy gate, search, guards, seat map, create,
 duplicate refusal, edit, fee math, bad-weight refusal, pay, check-in, cancel,
 cascade delete, passenger add/delete, admin, travel-as filter, admin view,
 network chips, cross-user refusal.

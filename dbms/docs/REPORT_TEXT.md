@@ -133,7 +133,13 @@ on a booking); third normal form holds because no transitive dependencies
 remain (city depends on airport, and flights reference the airport instead of
 copying its city; airline country lives in Airlines, not in Aircraft). The
 design is BCNF-clean: every determinant in every table is a key, verified
-table by table during design review.
+table by table during design review. The headline functional dependencies:
+airport_id determines IATA, name and city; flight_number determines airline
+and both airports; (flight_id, scheduled_departure) determines one departure;
+(departure_id, seat_number) determines one booking; (booking_id, baggage_seq)
+determines one bag weight; tail_number, licence, email, passport and
+txn_reference each determine their row; employee_id determines the person, with
+role facts in the subtype keyed by the same id.
 Referential discipline: CASCADE where children cannot meaningfully outlive
 parents (bookings, bags, payments of a deleted departure vanish together);
 RESTRICT on airports (deleting an airport must never silently wipe timetable
@@ -155,11 +161,11 @@ the exact database name, because a grant issued on a misspelled database name
 succeeds silently and protects nothing.
 DML (data/generate.py, seed 42, writing data/seed_data.sql): five airports,
 three airlines, sixteen scheduled flights across sixteen routes, twenty-one
-days of dated departures (336 departures), five hundred passengers, bookings
+days of dated departures (336 departures), four thousand passengers, bookings
 at 35 to 80 percent load factors with seats sampled without replacement
 (roughly thirty-four thousand bookings), matching payments at 92 percent paid,
 baggage at roughly 1.2 bags per booking with an 80/20 split under and over
-the 20 kg allowance (roughly thirty-eight thousand bags, giving the fee demo
+the 20 kg allowance (roughly forty-three thousand bags, giving the fee demo
 a real overweight tail), check-ins on about seventy percent of past
 departures, and eight staff with subtype rows. The generated file is
 machine-verified before loading: zero duplicate (departure, seat) pairs and
@@ -218,7 +224,7 @@ columns, create the index, re-run EXPLAIN, screenshot again. The before/after
 pairs are the Step 10 deliverable. Script: advanced/05-indexes.sql.
 
 ## Step 11: Testing and Validation
-docs/TESTING.md records thirty checks in eight groups. Joins (J1-J10): all ten
+docs/TESTING.md records twenty-four checks in eight groups. Joins (J1-J10): all ten
 run clean with non-empty result sets; the LEFT JOIN manifest keeps bag-less
 bookings visible; the overweight list is non-empty by construction. Analytics
 (A1-A8): busiest routes match the scheduled frequencies; every load factor

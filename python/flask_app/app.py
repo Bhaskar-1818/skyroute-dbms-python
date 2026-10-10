@@ -186,15 +186,20 @@ def bookings():
         where, args = "WHERE b.passenger_id = ?", [pax_id]
     rows = db.execute(
         f"""SELECT b.*, p.first_name, p.last_name, f.flight_number, d.scheduled_departure,
+                  d.scheduled_arrival, dep.iata_code AS from_airport, arr.iata_code AS to_airport,
                   g.gate_number, pay.pay_status,
                   (SELECT COUNT(*) FROM Baggage WHERE booking_id = b.booking_id) AS bags,
-                  COALESCE((SELECT SUM(MAX(weight_kg - 20, 0)) * 500 FROM Baggage
+                  COALESCE((SELECT SUM(weight_kg) FROM Baggage
+                            WHERE booking_id = b.booking_id), 0) AS bag_kg,
+                  COALESCE((SELECT ROUND(SUM(MAX(weight_kg - 20, 0)) * 500, 2) FROM Baggage
                             WHERE booking_id = b.booking_id), 0) AS fee,
                   (SELECT boarding_status FROM Check_Ins WHERE booking_id = b.booking_id) AS boarding
            FROM Bookings b
            JOIN Passengers p ON b.passenger_id = p.passenger_id
            JOIN Departures d ON b.departure_id = d.departure_id
            JOIN Flights f ON d.flight_id = f.flight_id
+           JOIN Airports dep ON f.departure_airport_id = dep.airport_id
+           JOIN Airports arr ON f.arrival_airport_id = arr.airport_id
            LEFT JOIN Gates g ON d.gate_id = g.gate_id
            LEFT JOIN Payments pay ON b.booking_id = pay.booking_id
            {where}

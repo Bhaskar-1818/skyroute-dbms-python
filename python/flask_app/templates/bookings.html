@@ -35,8 +35,16 @@ only your tickets, and only yours can be changed. Nothing of anyone else's is sh
 </div>
 <div class="tbody">
 <h3>{{ b.first_name }} {{ b.last_name }} — {{ b.flight_number }}</h3>
-<p class="mut">{{ b.scheduled_departure }} · {{ b.travel_class }} · Rs {{ b.price }} ·
+<div class="route">
+<span><span class="ap">{{ b.from_airport }}</span><br><span class="tm">{{ b.scheduled_departure[11:16] }}</span></span>
+<span class="line"></span>
+<span style="text-align:right"><span class="ap">{{ b.to_airport }}</span><br><span class="tm">{{ b.scheduled_arrival[11:16] }}</span></span>
+</div>
+<p class="mut">{{ b.scheduled_departure[:10] }} · {{ b.travel_class }} · Rs {{ b.price }} ·
 {{ b.bags }} bag(s) · baggage fee <b>Rs {{ b.fee }}</b></p>
+{% if b.bags %}<div class="bagbar{% if b.fee %} over{% endif %}">
+<i style="width:{{ [b.bag_kg / 40 * 100, 100] | min | round }}%"></i></div>
+<p class="mut">{{ b.bag_kg }} kg packed · 20 kg free per bag{% if b.fee %} · overweight in red{% endif %}</p>{% endif %}
 <p><span class="tag {{ 'ok' if b.booking_status=='Confirmed' else 'dim' }}">{{ b.booking_status }}</span>
 <span class="tag {{ 'dark' if b.pay_status=='Paid' else 'warn' }}">{{ b.pay_status }}</span>
 {% if b.boarding %}<span class="tag ok">{{ b.boarding }}</span>{% endif %}</p>
