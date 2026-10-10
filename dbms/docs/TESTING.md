@@ -19,7 +19,7 @@ Date the run, paste the output or screenshot number next to each row.
 ## T3 — Constraints (Steps 6–7, eval: Output Accuracy)
 | # | Check | Expected |
 |---|-------|----------|
-| C-a | insert duplicate (instance_id, seat_number) | ERROR 1062, row rejected |
+| C-a | insert duplicate (departure_id, seat_number) | ERROR 1062, row rejected |
 | C-b | insert flight with departure = arrival airport | CHECK violation, rejected |
 | C-c | insert bag with weight 0 or negative | CHECK violation, rejected |
 | C-d | delete an airport that still has flights | RESTRICT refuses (flights preserved) |
@@ -30,7 +30,7 @@ Date the run, paste the output or screenshot number next to each row.
 |---|-------|----------|
 | T-a | `CALL MakeBooking(...)` on a free seat | booking + Pending payment created, @id returned |
 | T-b | `CALL MakeBooking(...)` on a taken seat | procedure fails, NOTHING inserted (atomicity) |
-| T-c | fill an instance to capacity, book once more | ERROR 45000 'fully booked' from trigger |
+| T-c | fill a departure to capacity, book once more | ERROR 45000 'fully booked' from trigger |
 
 ## T5 — Transactions (Step 9, eval: Output Accuracy)
 | # | Check | Expected |
@@ -55,5 +55,5 @@ Date the run, paste the output or screenshot number next to each row.
 ## T8 — Scale (Step 10, eval: Output Accuracy)
 | # | Check | Expected |
 |---|-------|----------|
-| S-a | row-count table from 03-admin | 140 instances, ~14k bookings, ~17k bags |
+| S-a | row-count table from 03-admin | 140 departures, ~14k bookings, ~17k bags |
 | S-b | A7 daily snapshot covers all 14 days | no gaps in the date range |

@@ -11,7 +11,7 @@ plain HTML/CSS (sufficient per the notice), SQLite file `skyroute.db`.
 
 ## Setup and run
 ```
-python flask_app/seed_sqlite.py   # builds skyroute.db (35 instances, ~3.4k bookings)
+python flask_app/seed_sqlite.py   # builds skyroute.db (35 departures, ~3.4k bookings)
 python flask_app/app.py           # serves http://127.0.0.1:5000
 python flask_app/test_app.py      # end-to-end test, no server needed
 ```
@@ -25,7 +25,7 @@ python flask_app/test_app.py      # end-to-end test, no server needed
 | Delete | delete booking (bags/payment/check-in vanish via CASCADE), delete passenger |
 
 ## Key rules reused from the database design
-- `UNIQUE(instance_id, seat_number)`: the app pre-checks taken seats and also
+- `UNIQUE(departure_id, seat_number)`: the app pre-checks taken seats and also
   catches the database IntegrityError, so a double booking fails with words,
   never a crash page.
 - Booking + payment insert run in one transaction: both or neither.
