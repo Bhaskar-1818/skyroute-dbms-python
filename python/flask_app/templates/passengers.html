@@ -1,13 +1,13 @@
 {% extends "base.html" %}{% set page='pax' %}{% block body %}
 <div class="card">
-<h2 style="margin-top:0">Passengers</h2>
-<p class="mut">Everyone who flies must be registered here first — then their name appears on the booking page.</p>
+<h2>Passengers</h2>
+<p class="mut">Everyone who flies registers here first — then their name appears on the booking page.</p>
 <form method="post">
-<input name="first_name" placeholder="First name" required>
-<input name="last_name" placeholder="Last name" required>
-<input name="passport_number" placeholder="Passport (optional)">
-<input name="phone" placeholder="Phone" required>
-<input name="email" placeholder="Email" required>
+<input name="first_name" placeholder="First name" required style="max-width:170px">
+<input name="last_name" placeholder="Last name" required style="max-width:170px">
+<input name="passport_number" placeholder="Passport (optional)" style="max-width:170px">
+<input name="phone" placeholder="Phone" required style="max-width:150px">
+<input name="email" placeholder="Email" required style="max-width:230px">
 <button>Add passenger</button></form></div>
 <div class="card">
 <table><tr><th>ID</th><th>Name</th><th>Passport</th><th>Phone</th><th>Email</th><th></th></tr>

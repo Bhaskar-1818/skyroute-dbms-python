@@ -1,32 +1,33 @@
 {% extends "base.html" %}{% set page='search' %}{% block body %}
 <div class="card">
-<h2 style="margin-top:0"><span class="flight">{{ dep.flight_number }}</span>
+<p class="mut" style="margin-top:0">{{ dep.airline_name }} · {{ dep.model }}</p>
+<h2><span class="flight">{{ dep.flight_number }}</span>
 {{ dep.from_airport }} → {{ dep.to_airport }}</h2>
-<p class="mut">{{ dep.airline_name }} · {{ dep.model }} · departs
-<span class="mono">{{ dep.scheduled_departure }}</span> ·
+<p><span class="mono">{{ dep.scheduled_departure }}</span> ·
+<span class="tag gate">{{ dep.gate_number or "gate TBA" }}</span> ·
 {{ dep.capacity - taken|length }} of {{ dep.capacity }} seats free</p>
-<h3>Pick your seat — green is free, grey is taken</h3>
+<h3>Pick your seat</h3>
+<p class="mut">Green pops when you tap it. Grey struck seats are taken — the database
+refuses those, and the page will tell you so if you try.</p>
 <form method="post" id="bookform">
-<select name="passenger_id">{% for p in passengers %}
+<select name="passenger_id" style="max-width:340px">{% for p in passengers %}
 <option value="{{ p.passenger_id }}">{{ p.first_name }} {{ p.last_name }} ({{ p.email }})</option>{% endfor %}</select>
-<select name="travel_class">
+<select name="travel_class" style="max-width:200px">
 <option>Economy</option><option>Premium Economy</option>
 <option>Business</option><option>First</option></select>
-<input name="price" value="4500" size="7" required>
+<input name="price" value="4500" size="7" required style="max-width:120px">
 <input type="hidden" name="seat" id="seatfield" required>
 <button>Book seat <span id="seatlabel" class="mono"></span></button></form>
-<div class="seats">
+<div class="seats" id="cabin">
 {% for row in grid %}{% for s, is_taken in row %}
+{% if loop.index0 == 3 %}<span class="aisle"></span>{% endif %}
 <button type="button" data-seat="{{ s }}" {% if is_taken %}disabled{% endif %}>{{ s }}</button>
 {% endfor %}{% endfor %}</div>
-<p class="legend"><i style="background:#fff;border:2px solid #1b7fd4"></i>free
-<i style="background:#e3e9f0"></i>taken — the database refuses these (try one and see)</p>
 <p class="mut">New here? <a href="/passengers">Add yourself as a passenger first.</a></p>
 </div>
 <script>
-document.querySelectorAll('.seats button:not(:disabled)').forEach(b=>{
-b.onclick=()=>{document.getElementById('seatfield').value=b.dataset.seat;
-document.getElementById('seatlabel').textContent=b.dataset.seat;
-document.querySelectorAll('.seats button').forEach(x=>x.style.outline='');
-b.style.outline='3px solid #f5a623';};});
+const field=document.getElementById('seatfield'),label=document.getElementById('seatlabel');
+document.querySelectorAll('#cabin button:not(:disabled)').forEach(b=>{
+b.onclick=()=>{document.querySelectorAll('#cabin button').forEach(x=>x.classList.remove('picked'));
+b.classList.add('picked');field.value=b.dataset.seat;label.textContent=b.dataset.seat;};});
 </script>{% endblock %}

@@ -1,26 +1,26 @@
 {% extends "base.html" %}{% set page='admin' %}{% block body %}
 <div class="card">
-<h2 style="margin-top:0">Airline admin</h2>
+<h2>Airline admin</h2>
 <p>{% for k,v in counts.items() %}<b>{{ k }}:</b> <span class="mono">{{ v }}</span> &nbsp;{% endfor %}</p></div>
 <div class="card">
-<h3 style="margin-top:0">Timetable</h3>
+<h2>Timetable</h2>
 <table><tr><th>Flight</th><th>Airline</th><th>Status</th><th></th></tr>
 {% for f in flights %}<tr>
 <td><span class="flight">{{ f.flight_number }}</span></td><td>{{ f.airline_name }}</td>
-<td><span class="pill {{ 'green' if f.flight_status=='Active' else 'grey' }}">{{ f.flight_status }}</span></td>
+<td><span class="tag {{ 'ok' if f.flight_status=='Active' else 'dim' }}">{{ f.flight_status }}</span></td>
 <td><form class="inline" action="/flights/{{ f.flight_id }}/toggle" method="post">
 <button class="ghost">Suspend / Activate</button></form></td></tr>{% endfor %}</table></div>
 <div class="card">
-<h3 style="margin-top:0">Add a flight to the timetable</h3>
+<h2>Add a flight</h2>
 <p class="mut">The database itself refuses a flight whose departure and arrival airports match.</p>
 <form method="post">
-<input name="flight_number" placeholder="SG-999" required>
-<select name="airline_id">{% for a in airlines %}
-<option value="{{ a.airline_id }}">{{ a.airline_name }}</option>{% endfor %}</select><br>
-From: <select name="dep">{% for a in airports %}
+<input name="flight_number" placeholder="SG-999" required style="max-width:130px">
+<select name="airline_id" style="max-width:170px">{% for a in airlines %}
+<option value="{{ a.airline_id }}">{{ a.airline_name }}</option>{% endfor %}</select>
+<select name="dep" style="max-width:190px">{% for a in airports %}
 <option value="{{ a.airport_id }}">{{ a.iata_code }} — {{ a.city }}</option>{% endfor %}</select>
-To: <select name="arr">{% for a in airports %}
+<select name="arr" style="max-width:190px">{% for a in airports %}
 <option value="{{ a.airport_id }}">{{ a.iata_code }} — {{ a.city }}</option>{% endfor %}</select>
-<input type="time" name="dep_t" value="08:00" required>
-<input type="time" name="arr_t" value="09:30" required>
+<input type="time" name="dep_t" value="08:00" required style="max-width:130px">
+<input type="time" name="arr_t" value="09:30" required style="max-width:130px">
 <button>Add flight</button></form></div>{% endblock %}
