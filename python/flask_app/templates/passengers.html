@@ -1,21 +1,14 @@
 {% extends "base.html" %}{% set page='pax' %}{% block body %}
-<div class="card">
-<h2>Passengers</h2>
-<p class="mut">Everyone who flies registers here first — then their name appears on the booking page. Press <b>Travel as →</b> to become that traveler: My bookings will show only their tickets (your simulated login).</p>
-<form method="post">
-<input name="first_name" placeholder="First name" required style="max-width:170px">
-<input name="last_name" placeholder="Last name" required style="max-width:170px">
-<input name="passport_number" placeholder="Passport (optional)" style="max-width:170px">
-<input name="phone" placeholder="Phone" required style="max-width:150px">
-<input name="email" placeholder="Email" required style="max-width:230px">
-<button>Add passenger</button></form></div>
-<div class="card">
-<table><tr><th>ID</th><th>Name</th><th>Passport</th><th>Phone</th><th>Email</th><th></th></tr>
-{% for p in rows %}<tr>
-<td class="mono">{{ p.passenger_id }}</td><td><b>{{ p.first_name }} {{ p.last_name }}</b></td>
-<td class="mono">{{ p.passport_number or "—" }}</td><td class="mono">{{ p.phone }}</td><td>{{ p.email }}</td>
-<td><form class="inline" action="/travel-as/{{ p.passenger_id }}" method="post">
-<button class="ghost">Travel as →</button></form>
-<form class="inline" action="/passengers/{{ p.passenger_id }}/delete" method="post"
-onsubmit="return confirm('Delete this passenger and all their bookings?')">
-<button class="danger">Delete</button></form></td></tr>{% endfor %}</table></div>{% endblock %}
+<div class="card" style="max-width:720px;margin:32px auto">
+<p class="eyebrow">New traveler · one step</p>
+<h2>Traveler registration</h2>
+<p class="mut">Register once to get your numeric traveler <b>ID</b> — your login ID (demo password <span class="mono">fly123</span>). The traveler list itself stays private inside the Staff portal.</p>
+<form method="post" class="formgrid">
+<div class="field"><input name="first_name" placeholder="First name" aria-label="First name" required></div>
+<div class="field"><input name="last_name" placeholder="Last name" aria-label="Last name" required></div>
+<div class="field"><input name="passport_number" placeholder="Passport (optional)" aria-label="Passport (optional)"></div>
+<div class="field"><input name="phone" placeholder="Phone" aria-label="Phone" required></div>
+<div class="field span2"><input name="email" placeholder="Email" aria-label="Email" required></div>
+<button class="span2" style="width:100%">Register</button></form>
+<p class="mut">Already registered? <a href="/login">Log in with your ID</a>.</p>
+</div>{% endblock %}

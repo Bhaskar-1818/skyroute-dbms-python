@@ -1,5 +1,6 @@
-"""Draws docs/ER_Diagram.png with Pillow (no graphviz needed).
-Run from project root:  python docs/build_erd.py"""
+"""SUPERSEDED by build_chen.py (v2 true-Chen ER). Kept for history; running this
+would redraw the old v1 boxes (Runways/Flight_Instances/Crew_Assignments).
+Use:  python dbms/docs/build_chen.py  ->  SkyRoute_ER.drawio + ER_Diagram.png"""
 from PIL import Image, ImageDraw
 
 W, H = 2200, 1500
@@ -66,5 +67,5 @@ link(1470, 910, 1730, 900, "is-a")
 link(1730, 910, 1100, 1100, "duties")
 link(225, 680, 1000, 1100, "crews")
 
-img.save("docs/ER_Diagram.png")
+img.save("dbms/docs/ER_Diagram.png")
 print("erd written")

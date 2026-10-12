@@ -1,5 +1,5 @@
 -- ============================================================================
--- SkyRoute : Airline Ticket & Baggage System (multi-airport) — SCHEMA v2
+-- SkyRoute : Airline Booking, Baggage & Staff Operations System (multi-airport) — SCHEMA v2
 -- File 01 : travel-core schema  (MySQL 8.0, InnoDB, utf8mb4)
 -- Run from dbms/ :  mysql -u root -p  ->  SOURCE schema/01-travel-core.sql;
 -- Order : 01 -> 02-staff-roles.sql -> seed -> queries -> advanced

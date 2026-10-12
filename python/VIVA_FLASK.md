@@ -4,10 +4,11 @@
 1. Why Flask, why sqlite3, why no ORM?
    Approved stack; sqlite3 is stdlib and every query stays visible SQL, which
    is the point while learning. SQLAlchemy would hide exactly what I need to show.
-2. CRUD mapping? Create: book seat (+auto payment), add passenger/flight/bag.
-   Read: search, bookings with receipt + fee, admin counts. Update: edit seat,
-   cancel, mark paid, check in, suspend flight. Delete: booking (CASCADE takes
-   bags/payment/check-in), passenger.
+2. CRUD mapping? Create: book seat (+auto payment), register traveler, add
+   flight, add bag. Read: route search, manifest, own bookings with receipt +
+   fee, staff counts. Update: edit seat/class/price, edit traveler, cancel,
+   mark paid, check in, suspend flight. Delete: booking (CASCADE takes
+   bags/payment/check-in), traveler (bookings go too), empty flight.
 3. Double booking on the site? Seat map greys taken seats; the POST re-checks
    AND catches IntegrityError from UNIQUE(departure_id, seat_number) — the
    pre-check is politeness, the key is correctness.
@@ -17,25 +18,36 @@
    back both. Same idea as MakeBooking, in application code.
 6. MySQL vs SQLite differences met? ENUM → TEXT+CHECK, AUTO_INCREMENT →
    INTEGER PRIMARY KEY AUTOINCREMENT, DATETIME → sortable TEXT.
-7. How was it tested? test_app.py: 19 checks via Flask test client, no server
-   needed — search, guards, seat map, create, duplicate refusal, edit, fee math,
-   bad-weight refusal, pay, check-in, cancel, cascade delete, admin, travel-as
-   filter, admin view, network chips, privacy gate, cross-user refusal.
-8. Why does the bookings page hide everything until I pick a traveler?
-   Privacy: tickets expose people's travel plans. No identity means no tickets
-   and no actions; every mutation re-checks ownership server-side, so one
-   traveler can never touch another's tickets. Single-user demo, production
-   would add real auth.
-9. Why don't travelers hold absurd numbers of trips?
-   The seeder budgets 1-4 trips per traveler with at most one departure per
-   day — verified zero same-departure and zero same-day doubles. The MySQL
-   seeder uses the same rule at 4,000 travelers and a 14-trip cap.
+7. How was it tested? test_app.py: 28 checks via Flask test client, no server
+   needed — privacy gate, route search, empty-date search, guards, manifest
+   staff gate, booking login wall, login and logout, seat map, create, refusal
+   guards, edit, fee math, pay, check-in, cancel, cascade delete, staff-gated
+   deletes and edits, admin PIN, travel-as filter, admin view, cross-user refusal.
+8. Why ID + password instead of the old "pick a traveler" dropdown? A dropdown
+   of all travelers lets anyone BE anyone — it defeats privacy. The numeric ID
+   is unique per traveler and the demo password proves it; the bookings query
+   then filters by session identity, and every mutation re-checks owner-or-staff
+   server-side. Direct `?pax=` URLs bounce guests to login.
+9. What can staff do that travelers can't? Open any departure manifest, check
+   anyone in, mark any payment paid, add bags, edit or cancel any booking, add
+   or delete flights, edit or delete travelers, preview as anyone. Staff is PIN
+   `1234`; travelers use ID + `fly123`. Separate gates, separate powers.
+10. Why do some route+date searches return nothing? The timetable is sparse by
+    design: each flight operates a different random subset of days (fixed
+    seed, so the demo is stable). Empty results get words, not an error page.
+11. Why don't travelers hold absurd numbers of trips? The seeder budgets one
+    trip for most, two at most, one departure per day — verified zero
+    same-departure and zero same-day doubles. Names are real diverse Indian
+    names pulled from the web (cached for stable reseeds), not a 10-name loop.
+12. Booking for someone else as traveler? Impossible: the POST ignores the form
+    passenger and books as the session identity; only staff's form choice is
+    honored. Booking never changes who is logged in.
 
 ## Demo script (2–3 min, say while clicking)
-1. Home: "SkyRoute in three steps — search, seat, bookings."
-2. Search HYD→BLR on 2026-11-03: "departure board with gates and seats sold."
-3. Open 6E-501: "green seats free, grey taken — the UNIQUE key made visible."
-4. Book 12A: "booking plus Pending payment, one transaction."
-5. Book 12A again: "refused with words, not a crash."
+1. Home: "Airplane Management System — staff portal plus traveler login."
+2. Search HYD-BLR on 2026-11-03: "typed route, departure board with gates."
+3. Log in as traveler 1: "ID plus demo password — only my tickets."
+4. Book a green seat: "booking plus Pending payment, one transaction."
+5. Book it again: "refused with words, not a crash."
 6. Add 25 kg bag: "Rs 2,500 fee — 5 kg over at Rs 500."
-7. Mark Paid, check in, admin counts. Done.
+7. Unlock Staff, open the manifest: "every passenger on this departure."

@@ -3,27 +3,44 @@
 {% if gated %}
 <div class="card" style="text-align:center;padding:48px 24px">
 <h2>Who's traveling?</h2>
-<p class="mut">Tickets belong to travelers. Pick who you are first — then you'll see
-only your tickets, and only yours can be changed. Nothing of anyone else's is shown.</p>
-<form method="get" action="/bookings" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-<select name="pax" style="max-width:320px">{% for t in travelers %}
-<option value="{{ t.passenger_id }}">{{ t.first_name }} {{ t.last_name }}</option>
-{% endfor %}</select>
-<button>Show my tickets</button></form>
-<p class="mut">Staff? <a href="/bookings?pax=0">Open the admin view (everyone)</a></p>
+<p class="mut">Tickets belong to travelers. Log in with your traveler ID and demo password — you'll see only your tickets, nothing of anyone else's.</p>
+<p><a class="btn" href="/login">Log in to see my tickets</a></p>
 </div>
 {% else %}
 <div class="card" style="display:flex;gap:12px;align-items:end;flex-wrap:wrap">
-<form method="get" action="/bookings" style="display:flex;gap:10px;align-items:end">
-<div class="field" style="max-width:300px"><label>Show tickets of</label>
-<select name="pax" onchange="this.form.submit()">
-<option value="0">Everyone (admin view)</option>
-{% for t in travelers %}
-<option value="{{ t.passenger_id }}" {% if pax_id==t.passenger_id %}selected{% endif %}>{{ t.first_name }} {{ t.last_name }}</option>
-{% endfor %}</select></div>
-<noscript><button>Apply</button></noscript></form>
-{% if me %}<p class="mut">Filtered to <b>{{ me.first_name }} {{ me.last_name }}</b> — nobody else's tickets are shown or touchable. <a href="/bookings?pax=0">Show everyone</a></p>
-{% else %}<p class="mut"><b>Admin view:</b> everyone's tickets, read-only. Pick a traveler to manage tickets.</p>{% endif %}
+{% if session.get('is_admin') %}
+<form method="get" action="/bookings" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap">
+<div class="field" style="max-width:300px;min-width:220px"><label>Show tickets of — type name or ID</label>
+<div class="acwrap">
+<input id="travpick" placeholder="e.g. 600 or Kavya" autocomplete="off" style="width:100%">
+<input type="hidden" name="pax" id="travid">
+<div class="aclist" id="travlist" hidden></div>
+</div></div>
+<button>Apply</button>
+<a class="btn ghost small" href="/bookings?pax=0">Everyone</a></form>
+<script>
+(function(){
+const TRAV={{ trav_list|tojson }};
+const inp=document.getElementById('travpick'),hid=document.getElementById('travid'),box=document.getElementById('travlist');
+function close(){box.hidden=true;box.innerHTML='';}
+inp.addEventListener('input',()=>{
+ const q=inp.value.trim().toLowerCase();hid.value='';
+ if(q.length<1){close();return;}
+  const hits=TRAV.filter(p=>p.label.toLowerCase().includes(q)||String(p.id)===q).slice(0,8);
+  if(!hits.length){close();return;}
+  box.innerHTML='';
+  hits.forEach(h=>{const b=document.createElement('button');b.type='button';b.dataset.id=h.id;
+   const i=document.createElement('b');i.textContent=h.id;b.appendChild(i);
+   const s=document.createElement('span');s.textContent=h.label;b.appendChild(s);
+   b.onclick=()=>{inp.value=b.textContent.trim();hid.value=b.dataset.id;close();};box.appendChild(b);});
+  box.hidden=false;
+});
+document.addEventListener('click',e=>{if(!box.contains(e.target)&&e.target!==inp)close();});
+})();
+</script>
+{% endif %}
+{% if me %}<p class="mut" style="width:100%">Filtered to <b>{{ me.first_name }} {{ me.last_name }}</b> — nobody else's tickets are shown.</p>
+{% else %}<p class="mut" style="width:100%"><b>Staff view (admin view):</b> everyone's tickets, read-only. Pick a traveler to manage tickets.</p>{% endif %}
 </div>
 {% for b in rows %}
 <article class="ticket">
@@ -31,39 +48,57 @@ only your tickets, and only yours can be changed. Nothing of anyone else's is sh
 <div class="seat">{{ b.seat_number }}</div>
 <div class="fl">{{ b.flight_number }}</div>
 <div class="fl">SR-{{ 1000 + b.booking_id }}</div>
-<div class="fl">{{ b.scheduled_departure[11:16] }} · {{ b.gate_number or "—" }}</div>
+<div><span class="gatechip">{{ b.scheduled_departure[11:16] }} · {{ b.gate_number or "—" }}</span></div>
 </div>
 <div class="tbody">
-<h3>{{ b.first_name }} {{ b.last_name }} — {{ b.flight_number }}</h3>
-<div class="route">
-<span><span class="ap">{{ b.from_airport }}</span><br><span class="tm">{{ b.scheduled_departure[11:16] }}</span></span>
-<span class="line"></span>
-<span style="text-align:right"><span class="ap">{{ b.to_airport }}</span><br><span class="tm">{{ b.scheduled_arrival[11:16] }}</span></span>
-</div>
-<p class="mut">{{ b.scheduled_departure[:10] }} · {{ b.travel_class }} · Rs {{ b.price }} ·
-{{ b.bags }} bag(s) · baggage fee <b>Rs {{ b.fee }}</b></p>
-{% if b.bags %}<div class="bagbar{% if b.fee %} over{% endif %}">
-<i style="width:{{ [b.bag_kg / 40 * 100, 100] | min | round }}%"></i></div>
-<p class="mut">{{ b.bag_kg }} kg packed · 20 kg free per bag{% if b.fee %} · overweight in red{% endif %}</p>{% endif %}
-<p><span class="tag {{ 'ok' if b.booking_status=='Confirmed' else 'dim' }}">{{ b.booking_status }}</span>
+<div class="t-head">
+<h3>{{ b.first_name }} {{ b.last_name }}</h3>
+<p class="tags"><span class="tag {{ 'ok' if b.booking_status=='Confirmed' else 'dim' }}">{{ b.booking_status }}</span>
 <span class="tag {{ 'dark' if b.pay_status=='Paid' else 'warn' }}">{{ b.pay_status }}</span>
 {% if b.boarding %}<span class="tag ok">{{ b.boarding }}</span>{% endif %}</p>
-{% if pax_id %}
+</div>
+<div class="journey">
+<div><span class="ap">{{ b.from_airport }}</span><span class="tm">{{ b.scheduled_departure[11:16] }} · {{ b.scheduled_departure[:10] }}</span></div>
+<div class="jmid"><span class="jline"></span><span class="jplane">✈</span><span class="jflight">{{ b.flight_number }}</span><span class="jline"></span></div>
+<div class="jto"><span class="ap">{{ b.to_airport }}</span><span class="tm">{{ b.scheduled_arrival[11:16] }}</span></div>
+</div>
+<dl class="specs">
+<div><dt>Fare</dt><dd>Rs {{ '%g' % b.price }}</dd></div>
+<div><dt>Class</dt><dd>{{ b.travel_class }}</dd></div>
+<div><dt>Bags</dt><dd>{{ b.bags }} bag{{ 's' if b.bags != 1 else '' }} · {{ '%g' % b.bag_kg }} kg</dd></div>
+{% if b.fee %}<div><dt>Fee due</dt><dd class="due">Rs {{ '%g' % b.fee }}</dd></div>{% endif %}
+</dl>
+{% if b.bags %}<div class="bagbar{% if b.fee %} over{% endif %}">
+<i style="width:{{ [b.bag_kg / (b.bags * 20) * 100, 100] | min | round }}%"></i></div>
+<p class="mut">{{ '%g' % b.bag_kg }} kg of {{ b.bags * 20 }} kg free</p>{% endif %}
+{% if session.get('is_admin') %}
+<p class="eyebrow">Services</p>
+<div class="actionrow">
 <div class="actions">
+<form class="inline baggroup" action="/baggage/{{ b.booking_id }}" method="post">
+<input name="weight" placeholder="bag kg" required><button class="ghost">+ Bag</button></form>
+<form class="inline" action="/payment/{{ b.booking_id }}/pay" method="post"><button class="ghost">Mark paid</button></form>
+<form class="inline" action="/checkin/{{ b.booking_id }}" method="post"><button class="ghost">Check in</button></form>
+</div>
+<details class="edit">
+<summary class="btn ghost small" style="display:inline-block">Edit ticket</summary>
+<div class="edit-body"><div>
 <form class="inline" action="/bookings/{{ b.booking_id }}/edit" method="post">
 <input name="seat" value="{{ b.seat_number }}" title="New seat" style="width:64px">
 <select name="travel_class" style="width:150px">{% for c in ['Economy','Premium Economy','Business','First'] %}
 <option {% if c==b.travel_class %}selected{% endif %}>{{ c }}</option>{% endfor %}</select>
-<input name="price" value="{{ b.price }}" title="New price" style="width:90px">
+<input name="price" value="{{ '%g' % b.price }}" title="New price" style="width:90px">
 <button class="ghost">Save</button></form>
-<form class="inline" action="/baggage/{{ b.booking_id }}" method="post">
-<input name="weight" placeholder="bag kg" required style="width:80px"><button class="ghost">+ Bag</button></form>
-<form class="inline" action="/payment/{{ b.booking_id }}/pay" method="post"><button class="ghost">Mark paid</button></form>
-<form class="inline" action="/checkin/{{ b.booking_id }}" method="post"><button class="ghost">Check in</button></form>
-<form class="inline" action="/bookings/{{ b.booking_id }}/cancel" method="post"><button class="ghost">Cancel</button></form>
+<div class="actions">
+<form class="inline" action="/bookings/{{ b.booking_id }}/cancel" method="post"><button class="ghost">Cancel booking</button></form>
 <form class="inline" action="/bookings/{{ b.booking_id }}/delete" method="post"
 onsubmit="return confirm('Delete booking SR-{{ 1000 + b.booking_id }} and its bags, payment and check-in?')"><button class="danger">Delete</button></form>
 </div>
+</div></div>
+</details>
+</div>
+{% elif pax_id %}
+<p class="mut">Ticket changes are handled by staff — quote your seat and ticket ID at the counter.</p>
 {% else %}
 <p class="mut">Read-only in admin view — travel as {{ b.first_name }} {{ b.last_name }} to manage this ticket.</p>
 {% endif %}

@@ -17,6 +17,13 @@ ROOT = Path(__file__).resolve().parent
 DB = ROOT / "skyroute.db"
 FREE_KG, FEE_PER_KG = 20, 500  # baggage fee rule, single source of truth
 ADMIN_PIN = "1234"  # demo staff gate (classroom stand-in for staff login)
+CUSTOMER_PASSWORD = "fly123"  # demo customer password: ID is unique per traveler, password shared for the demo
+# Only routes the airline actually operates — the search offers these and
+# nothing else, so same-airport or fantasy routes can't even be picked.
+ROUTES = [("HYD-BLR", "HYD → BLR"), ("BLR-HYD", "BLR → HYD"),
+          ("DEL-BOM", "DEL → BOM"), ("BLR-DEL", "BLR → DEL"),
+          ("HYD-BOM", "HYD → BOM"), ("MAA-HYD", "MAA → HYD"),
+          ("HYD-MAA", "HYD → MAA")]
 
 app = Flask(__name__)
 app.secret_key = "skyroute-demo-key"  # flash messages only; demo app
@@ -50,8 +57,10 @@ def traveler():
 
 
 def owns(bid):
-    """True only if the ticket belongs to the current traveler. Every
-    mutating route checks this, so nobody can touch anyone else's tickets."""
+    """Staff (admin PIN) can touch any ticket; otherwise only the ticket's
+    own traveler can. Every mutating route checks this."""
+    if session.get("is_admin"):
+        return True
     pid = session.get("pax_id")
     if not pid:
         return False
@@ -63,6 +72,15 @@ def owns(bid):
 def refuse():
     flash("That ticket isn't yours. Travel as its owner to manage it.", "error")
     return redirect(url_for("bookings"))
+
+
+def go_next(fallback):
+    """Send staff back to the manifest they came from (hidden `next`
+    field), otherwise fall back. Keeps old forms working (no `next`)."""
+    nxt = (request.form.get("next") or request.args.get("next") or "").strip()
+    if nxt.startswith("/") and not nxt.startswith("//"):
+        return redirect(nxt)
+    return redirect(fallback)
 
 
 def admin_only(fn):
@@ -88,6 +106,22 @@ def seat_map(capacity, taken):
     return rows
 
 
+def valid_seats(capacity):
+    """Every seat number that physically exists on this plane — exactly the
+    set seat_map() renders, so input validation can never disagree with
+    the seat map (no phantom extra row, no phantom partial-row columns)."""
+    cap = capacity or 180
+    out, n = set(), 1
+    while len(out) < cap:
+        for l in "ABCDEF"[: cap - len(out)]:
+            out.add(f"{n}{l}")
+        n += 1
+    return out
+
+
+CLASSES = ("Economy", "Premium Economy", "Business", "First")
+
+
 # ------------------------------- 1. search ----------------------------------
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -95,23 +129,26 @@ def index():
     airports = db.execute("SELECT * FROM Airports ORDER BY iata_code").fetchall()
     results = []
     if request.method == "POST":
-        dep = (request.form.get("dep") or "").strip().upper()
-        arr = (request.form.get("arr") or "").strip().upper()
+        route = (request.form.get("route") or "").strip().upper()
         day = (request.form.get("day") or "").strip()
+        # Forgiving parse: HYD-BLR, HYD → BLR, hyd blr, HYD,BLR all work.
+        codes = [t for t in re.split(r"[\s,\-]+", route.replace("→", " ")) if t]
         known = {a["iata_code"] for a in airports}
-        if not dep or not arr or not day:
-            flash("Choose a departure, an arrival and a date first.", "error")
-        elif dep not in known or arr not in known:
-            flash("Unknown airport. Pick both cities from the lists.", "error")
-        elif dep == arr:
+        if not route or not day or len(codes) != 2:
+            flash("Choose a departure route and a date first.", "error")
+        elif codes[0] not in known or codes[1] not in known:
+            flash("Unknown route. Type one like HYD-BLR.", "error")
+        elif codes[0] == codes[1]:
             flash("Departure and arrival airports must differ.", "error")
         else:
+            dep, arr = codes
             results = db.execute(
                 """SELECT d.departure_id, f.flight_number, al.airline_name,
                           d.scheduled_departure, d.scheduled_arrival,
                           g.gate_number, d.departure_status,
-                          (SELECT COUNT(*) FROM Bookings b
-                            WHERE b.departure_id = d.departure_id) AS sold,
+                           (SELECT COUNT(*) FROM Bookings b
+                             WHERE b.departure_id = d.departure_id
+                               AND b.booking_status != 'Cancelled') AS sold,
                           ac.capacity, ac.model
                    FROM Departures d
                    JOIN Flights f ON d.flight_id = f.flight_id
@@ -126,7 +163,7 @@ def index():
                 (dep, arr, day)).fetchall()
             if not results:
                 flash("No departures on this route and date. Try HYD to BLR on 2026-11-03.", "error")
-    return render_template("index.html", airports=airports, results=results)
+    return render_template("index.html", airports=airports, results=results, routes=ROUTES)
 
 
 # ------------------------------ 2. choose seat --------------------------------
@@ -135,25 +172,37 @@ def book(departure_id):
     db = get_db()
     dep = db.execute(
         """SELECT d.*, f.flight_number, al.airline_name, ac.capacity, ac.model,
-                  dep_a.iata_code AS from_airport, arr_a.iata_code AS to_airport
-           FROM Departures d
-           JOIN Flights f ON d.flight_id = f.flight_id
-           JOIN Airlines al ON f.airline_id = al.airline_id
-           JOIN Airports dep_a ON f.departure_airport_id = dep_a.airport_id
-           JOIN Airports arr_a ON f.arrival_airport_id = arr_a.airport_id
-           LEFT JOIN Aircraft ac ON d.aircraft_id = ac.aircraft_id
-           WHERE d.departure_id = ?""",
+                   g.gate_number,
+                   dep_a.iata_code AS from_airport, arr_a.iata_code AS to_airport
+            FROM Departures d
+            JOIN Flights f ON d.flight_id = f.flight_id
+            JOIN Airlines al ON f.airline_id = al.airline_id
+            JOIN Airports dep_a ON f.departure_airport_id = dep_a.airport_id
+            JOIN Airports arr_a ON f.arrival_airport_id = arr_a.airport_id
+            LEFT JOIN Aircraft ac ON d.aircraft_id = ac.aircraft_id
+            LEFT JOIN Gates g ON d.gate_id = g.gate_id
+            WHERE d.departure_id = ?""",
         (departure_id,)).fetchone()
     if dep is None:
         return "Unknown departure", 404
+    # Bookings belong to travelers: staff may book for anyone, a logged-in
+    # traveler books only as themselves, guests log in first. Booking never
+    # changes who you are logged in as.
+    if not session.get("is_admin") and not session.get("pax_id"):
+        flash("Log in first — bookings belong to travelers.", "error")
+        return redirect(url_for("login"))
     taken = {r["seat_number"] for r in
-             db.execute("SELECT seat_number FROM Bookings WHERE departure_id = ?",
+             db.execute("SELECT seat_number FROM Bookings WHERE departure_id = ? "
+                        "AND booking_status != 'Cancelled'",
                         (departure_id,))}
     passengers = db.execute(
         "SELECT * FROM Passengers ORDER BY last_name, first_name").fetchall()
     if request.method == "POST":
         seat = (request.form.get("seat") or "").strip().upper()
-        pid = request.form.get("passenger_id")
+        if session.get("is_admin"):
+            pid = request.form.get("passenger_id")  # staff books for anyone
+        else:
+            pid = str(session.get("pax_id"))  # travelers book only as themselves
         tclass = request.form.get("travel_class")
         try:
             price = float(request.form.get("price") or "")
@@ -161,10 +210,7 @@ def book(departure_id):
         except ValueError:
             price_ok = False
         cap = dep["capacity"] or 180
-        max_row = cap // 6 + 1
-        seat_ok = bool(re.fullmatch(r"[1-9][0-9]?[A-F]", seat or ""))
-        if seat_ok:
-            seat_ok = int(seat[:-1]) <= max_row
+        seat_ok = seat in valid_seats(cap)
         pax_ok = pid and pid.isdigit() and db.execute(
             "SELECT 1 FROM Passengers WHERE passenger_id = ?", (int(pid),)).fetchone()
         if not pax_ok:
@@ -173,7 +219,7 @@ def book(departure_id):
             flash(f"Seat {seat or '?'} doesn't exist on this plane. Tap a white seat on the map.", "error")
         elif not price_ok:
             flash("Price must be a number, zero or more.", "error")
-        elif tclass not in ("Economy", "Premium Economy", "Business", "First"):
+        elif tclass not in CLASSES:
             flash("Pick a valid travel class.", "error")
         elif seat in taken:
             # The UNIQUE(departure_id, seat_number) key would refuse this anyway;
@@ -182,6 +228,13 @@ def book(departure_id):
         else:
             try:
                 with db:  # one transaction: booking + payment together or neither
+                    # A cancelled booking still holds its (departure, seat) key
+                    # until it is cleared, so clear it first — the seat is
+                    # genuinely free again and its stale payment/bags/check-in
+                    # vanish with it via ON DELETE CASCADE.
+                    db.execute("DELETE FROM Bookings WHERE departure_id = ? "
+                               "AND seat_number = ? AND booking_status = 'Cancelled'",
+                               (departure_id, seat))
                     cur = db.execute(
                         "INSERT INTO Bookings (passenger_id, departure_id, seat_number, travel_class, price) "
                         "VALUES (?, ?, ?, ?, ?)",
@@ -196,12 +249,19 @@ def book(departure_id):
                 # so a constraint failure here means the seat just got taken.
                 flash(f"Seat {seat} was just taken by someone else. Pick a green seat.", "error")
             else:
-                session["pax_id"] = int(pid)
                 flash(f"Booked! Seat {seat} on {dep['flight_number']} (booking {bid}).", "ok")
                 return redirect(url_for("bookings"))
     grid = seat_map(dep["capacity"] or 180, taken)
+    # Traveler directory for the staff autocomplete. Guests get an empty
+    # list: the full name+email directory must never leak into page source.
+    pax_list = []
+    if session.get("is_admin"):
+        pax_list = [{"id": p["passenger_id"],
+                     "label": f"{p['first_name']} {p['last_name']} ({p['email']})"}
+                    for p in passengers]
     return render_template("book.html", dep=dep, grid=grid,
-                           taken=sorted(taken), passengers=passengers)
+                           taken=sorted(taken), passengers=passengers,
+                           pax_list=pax_list)
 
 
 # ------------------------------ 3. my bookings --------------------------------
@@ -210,11 +270,24 @@ def bookings():
     db = get_db()
     # "Travel as" = simulated login. Pick a traveler once; this page then shows
     # only their tickets. No pick = show everything, labeled as the admin view.
+    # Identity can only be set via login (password) or staff preview.
+    # Direct ?pax= URLs no longer log anyone in: guests go to /login,
+    # and the everyone-view (?pax=0) needs the staff PIN.
     pick = request.args.get("pax")
     if pick is not None:
-        session.pop("pax_id", None)
-        if pick.isdigit() and int(pick) > 0:
-            session["pax_id"] = int(pick)
+        if pick == "0" or pick == "":
+            session.pop("pax_id", None)
+            if not session.get("is_admin"):
+                flash("Staff only. Unlock the Staff page with the PIN first.", "error")
+                return redirect(url_for("login"))
+        elif session.get("is_admin"):
+            session.pop("pax_id", None)
+            if pick.isdigit() and int(pick) > 0:
+                session["pax_id"] = int(pick)
+            return redirect(url_for("bookings"))
+        else:
+            flash("Log in with your traveler ID first.", "error")
+            return redirect(url_for("login"))
     pax_id = session.get("pax_id")
     # Privacy gate: with no traveler picked, show NOBODY's tickets — only the
     # picker. A bookings page that leaks everyone's travel plans by default is
@@ -224,7 +297,7 @@ def bookings():
         travelers = db.execute(
             "SELECT passenger_id, first_name, last_name FROM Passengers ORDER BY passenger_id LIMIT 120").fetchall()
         return render_template("bookings.html", rows=[], travelers=travelers,
-                               me=None, pax_id=None, gated=True)
+                               me=None, pax_id=None, gated=True, trav_list=[])
     where, args = "", []
     if pax_id:
         where, args = "WHERE b.passenger_id = ?", [pax_id]
@@ -254,14 +327,122 @@ def bookings():
     if pax_id:
         me = db.execute("SELECT first_name, last_name FROM Passengers WHERE passenger_id = ?",
                         (pax_id,)).fetchone()
+    trav_list = []
+    if session.get("is_admin"):
+        trav_list = [{"id": t["passenger_id"],
+                      "label": f"{t['first_name']} {t['last_name']}"}
+                     for t in travelers]
     return render_template("bookings.html", rows=rows, travelers=travelers,
-                           me=me, pax_id=pax_id, gated=False)
+                           me=me, pax_id=pax_id, gated=False, trav_list=trav_list)
 
 
 @app.route("/travel-as/<int:pid>", methods=["POST"])
+@admin_only
 def travel_as(pid):
+    """Staff preview tool: view the system as one traveler."""
     session["pax_id"] = pid
     return redirect(url_for("bookings"))
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    """Customer login: unique traveler ID + demo password.
+    Classroom stand-in for real auth — the ID proves WHO, the demo
+    password proves it's really them. Sets the same session the
+    bookings privacy gate already filters on, so a traveler sees
+    only their own tickets."""
+    if request.method == "POST":
+        pid = (request.form.get("passenger_id") or "").strip()
+        pw = request.form.get("password") or ""
+        me = None
+        if pid.isdigit() and int(pid) > 0:
+            me = get_db().execute(
+                "SELECT passenger_id, first_name, last_name FROM Passengers "
+                "WHERE passenger_id = ?", (int(pid),)).fetchone()
+        if me is None:
+            flash("No traveler with that ID. Find your ID on the Passengers page.", "error")
+        elif pw != CUSTOMER_PASSWORD:
+            flash("Wrong demo password.", "error")
+        else:
+            session["pax_id"] = me["passenger_id"]
+            flash(f"Welcome, {me['first_name']} — showing only your tickets.", "ok")
+            return redirect(url_for("bookings"))
+    return render_template("login.html")
+
+
+@app.route("/logout", methods=["GET", "POST"])
+def logout():
+    session.pop("pax_id", None)
+    flash("Logged out. No tickets are shown until the next login.", "ok")
+    return redirect(url_for("index"))
+
+
+@app.route("/staff-logout", methods=["POST"])
+def staff_logout():
+    """Lock the staff portal again (clears staff PIN + any preview)."""
+    session.pop("is_admin", None)
+    session.pop("pax_id", None)
+    flash("Staff portal locked.", "ok")
+    return redirect(url_for("index"))
+
+
+@app.route("/manifest/<int:departure_id>")
+def manifest(departure_id):
+    """Staff manifest: pick a flight departure, see every passenger on it.
+    Staff-only: guests are sent to unlock the Staff page first."""
+    if not session.get("is_admin"):
+        flash("Staff only. Unlock the Staff page with the PIN first.", "error")
+        return redirect(url_for("admin"))
+    db = get_db()
+    dep = db.execute(
+        """SELECT d.departure_id, d.scheduled_departure, d.scheduled_arrival,
+                  d.departure_status, f.flight_number, al.airline_name,
+                  dep_a.iata_code AS from_airport, dep_a.city AS from_city,
+                  arr_a.iata_code AS to_airport, arr_a.city AS to_city,
+                  ac.capacity, ac.model, g.gate_number,
+                  (SELECT COUNT(*) FROM Bookings b
+                    WHERE b.departure_id = d.departure_id
+                      AND b.booking_status != 'Cancelled') AS sold
+           FROM Departures d
+           JOIN Flights f ON d.flight_id = f.flight_id
+           JOIN Airlines al ON f.airline_id = al.airline_id
+           JOIN Airports dep_a ON f.departure_airport_id = dep_a.airport_id
+           JOIN Airports arr_a ON f.arrival_airport_id = arr_a.airport_id
+           LEFT JOIN Aircraft ac ON d.aircraft_id = ac.aircraft_id
+           LEFT JOIN Gates g ON d.gate_id = g.gate_id
+           WHERE d.departure_id = ?""",
+        (departure_id,)).fetchone()
+    if dep is None:
+        return "Unknown departure", 404
+    rows = db.execute(
+        """SELECT b.booking_id, b.seat_number, b.travel_class, b.price,
+                  b.booking_status, p.passenger_id, p.first_name, p.last_name,
+                  pay.pay_status,
+                  (SELECT boarding_status FROM Check_Ins
+                    WHERE booking_id = b.booking_id) AS boarding,
+                  (SELECT COUNT(*) FROM Baggage
+                    WHERE booking_id = b.booking_id) AS bags,
+                  COALESCE((SELECT SUM(weight_kg) FROM Baggage
+                            WHERE booking_id = b.booking_id), 0) AS bag_kg,
+                  COALESCE((SELECT ROUND(SUM(MAX(weight_kg - 20, 0)) * 500, 2)
+                            FROM Baggage WHERE booking_id = b.booking_id), 0) AS fee
+           FROM Bookings b
+           JOIN Passengers p ON b.passenger_id = p.passenger_id
+           LEFT JOIN Payments pay ON b.booking_id = pay.booking_id
+           WHERE b.departure_id = ?
+           ORDER BY b.seat_number""",
+        (departure_id,)).fetchall()
+    cap = dep["capacity"] or 180
+    sold = dep["sold"] or 0
+    revenue = sum((r["price"] or 0) for r in rows
+                  if r["booking_status"] != "Cancelled")
+    checked = sum(1 for r in rows if r["boarding"])
+    stats = {"capacity": cap, "sold": sold,
+             "load": round(sold / cap * 100) if cap else 0,
+             "revenue": revenue, "checked": checked,
+             "bags": sum((r["bags"] or 0) for r in rows)}
+    return render_template("manifest.html", dep=dep, rows=rows, stats=stats,
+                           back=(request.args.get("back") or ""))
 
 
 @app.route("/bookings/<int:bid>/edit", methods=["POST"])
@@ -269,17 +450,43 @@ def booking_edit(bid):
     if not owns(bid):
         return refuse()
     db = get_db()
-    seat = request.form["seat"].strip().upper()
+    dep = db.execute(
+        """SELECT b.departure_id, ac.capacity FROM Bookings b
+           JOIN Departures d ON b.departure_id = d.departure_id
+           LEFT JOIN Aircraft ac ON d.aircraft_id = ac.aircraft_id
+           WHERE b.booking_id = ?""", (bid,)).fetchone()
+    if dep is None:
+        return "Unknown booking", 404
+    seat = (request.form.get("seat") or "").strip().upper()
+    tclass = request.form.get("travel_class")
     try:
-        with db:
-            db.execute("UPDATE Bookings SET seat_number = ?, travel_class = ?, price = ? "
-                       "WHERE booking_id = ?",
-                       (seat, request.form["travel_class"], request.form["price"], bid))
-    except sqlite3.IntegrityError:
+        price = float(request.form.get("price") or "")
+        price_ok = price >= 0
+    except ValueError:
+        price_ok = False
+    clash = db.execute(
+        "SELECT 1 FROM Bookings WHERE departure_id = ? AND seat_number = ? "
+        "AND booking_id != ? AND booking_status != 'Cancelled'",
+        (dep["departure_id"], seat, bid)).fetchone()
+    if seat not in valid_seats(dep["capacity"]):
+        flash(f"Seat {seat or '?'} doesn't exist on this plane.", "error")
+    elif not price_ok:
+        flash("Price must be a number, zero or more.", "error")
+    elif tclass not in CLASSES:
+        flash("Pick a valid travel class.", "error")
+    elif clash:
         flash(f"Seat {seat} is taken. Nothing was changed.", "error")
     else:
-        flash(f"Booking {bid} updated to seat {seat}.", "ok")
-    return redirect(url_for("bookings"))
+        try:
+            with db:
+                db.execute("UPDATE Bookings SET seat_number = ?, travel_class = ?, price = ? "
+                           "WHERE booking_id = ?",
+                           (seat, tclass, price, bid))
+        except sqlite3.IntegrityError:
+            flash(f"Seat {seat} is taken. Nothing was changed.", "error")
+        else:
+            flash(f"Booking {bid} updated to seat {seat}.", "ok")
+    return go_next(url_for("bookings"))
 
 
 @app.route("/bookings/<int:bid>/cancel", methods=["POST"])
@@ -290,7 +497,7 @@ def booking_cancel(bid):
     with db:
         db.execute("UPDATE Bookings SET booking_status = 'Cancelled' WHERE booking_id = ?", (bid,))
     flash(f"Booking {bid} cancelled. The seat is free again.", "ok")
-    return redirect(url_for("bookings"))
+    return go_next(url_for("bookings"))
 
 
 @app.route("/bookings/<int:bid>/delete", methods=["POST"])
@@ -301,28 +508,32 @@ def booking_delete(bid):
     with db:  # bags, payment, check-in vanish via ON DELETE CASCADE
         db.execute("DELETE FROM Bookings WHERE booking_id = ?", (bid,))
     flash(f"Booking {bid} deleted with its bags, payment and check-in.", "ok")
-    return redirect(url_for("bookings"))
+    return go_next(url_for("bookings"))
 
 
-# --------------------------- passengers (CRUD) --------------------------------
+# --------------------------- passengers (register) ------------------------------
 @app.route("/passengers", methods=["GET", "POST"])
 def passengers():
+    """Public traveler registration. New travelers sign up here and get
+    their numeric ID (their login ID). The full traveler list lives only
+    in the staff portal — showing everyone's details publicly would
+    defeat the login's privacy."""
     db = get_db()
     if request.method == "POST":
         try:
             with db:
-                db.execute("INSERT INTO Passengers (first_name, last_name, passport_number, phone, email) "
+                cur = db.execute("INSERT INTO Passengers (first_name, last_name, passport_number, phone, email) "
                            "VALUES (?, ?, ?, ?, ?)",
                            (request.form["first_name"], request.form["last_name"],
                             request.form["passport_number"] or None,
                             request.form["phone"], request.form["email"]))
+                pid = cur.lastrowid
         except sqlite3.IntegrityError:
             flash("That passport number or email is already registered.", "error")
         else:
-            flash("Passenger added. They can now be picked on the booking page.", "ok")
+            flash(f"Registered! Your traveler ID is {pid} — log in with it + demo password fly123.", "ok")
         return redirect(url_for("passengers"))
-    rows = db.execute("SELECT * FROM Passengers ORDER BY passenger_id DESC LIMIT 100").fetchall()
-    return render_template("passengers.html", rows=rows)
+    return render_template("passengers.html")
 
 
 @app.route("/passengers/<int:pid>/delete", methods=["POST"])
@@ -332,6 +543,28 @@ def passenger_delete(pid):
     with db:
         db.execute("DELETE FROM Passengers WHERE passenger_id = ?", (pid,))
     flash("Passenger deleted with all their bookings.", "ok")
+    return redirect(url_for("passengers"))
+
+
+@app.route("/passengers/<int:pid>/edit", methods=["POST"])
+@admin_only
+def passenger_edit(pid):
+    """Staff Update: correct a passenger's details (the U in CRUD)."""
+    db = get_db()
+    try:
+        with db:
+            db.execute("UPDATE Passengers SET first_name = ?, last_name = ?, "
+                       "passport_number = ?, phone = ?, email = ? "
+                       "WHERE passenger_id = ?",
+                       (request.form["first_name"].strip(),
+                        request.form["last_name"].strip(),
+                        request.form.get("passport_number", "").strip() or None,
+                        request.form["phone"].strip(),
+                        request.form["email"].strip(), pid))
+    except sqlite3.IntegrityError:
+        flash("That passport number or email belongs to someone else. Nothing changed.", "error")
+    else:
+        flash(f"Passenger {pid} updated.", "ok")
     return redirect(url_for("passengers"))
 
 
@@ -345,10 +578,10 @@ def baggage_add(bid):
         weight = float(request.form["weight"])
     except ValueError:
         flash("Enter the weight as a number, e.g. 23.5.", "error")
-        return redirect(url_for("bookings"))
+        return go_next(url_for("bookings"))
     if not 0 < weight <= 100:
         flash("Bags must weigh between 0 and 100 kg.", "error")
-        return redirect(url_for("bookings"))
+        return go_next(url_for("bookings"))
     with db:
         seq = db.execute("SELECT COALESCE(MAX(baggage_seq), 0) + 1 FROM Baggage WHERE booking_id = ?",
                          (bid,)).fetchone()[0]
@@ -359,7 +592,7 @@ def baggage_add(bid):
         flash(f"Bag {weight} kg added: {weight - FREE_KG:.1f} kg over the free 20 kg = Rs {extra:.0f} fee.", "ok")
     else:
         flash(f"Bag {weight} kg added: within the free 20 kg allowance.", "ok")
-    return redirect(url_for("bookings"))
+    return go_next(url_for("bookings"))
 
 
 @app.route("/payment/<int:bid>/pay", methods=["POST"])
@@ -371,7 +604,7 @@ def payment_pay(bid):
         db.execute("UPDATE Payments SET pay_status = 'Paid', paid_at = datetime('now') "
                    "WHERE booking_id = ?", (bid,))
     flash(f"Payment for booking {bid} marked Paid.", "ok")
-    return redirect(url_for("bookings"))
+    return go_next(url_for("bookings"))
 
 
 @app.route("/checkin/<int:bid>", methods=["POST"])
@@ -383,7 +616,7 @@ def checkin(bid):
         db.execute("INSERT OR IGNORE INTO Check_Ins (booking_id, boarding_status) VALUES (?, 'Boarded')",
                    (bid,))
     flash(f"Booking {bid} checked in. Boarding pass ready.", "ok")
-    return redirect(url_for("bookings"))
+    return go_next(url_for("bookings"))
 
 
 # --------------------------------- admin ---------------------------------------
@@ -434,8 +667,22 @@ def admin():
         "JOIN Airlines al ON f.airline_id = al.airline_id ORDER BY f.flight_id").fetchall()
     airports = db.execute("SELECT * FROM Airports ORDER BY iata_code").fetchall()
     airlines = db.execute("SELECT * FROM Airlines ORDER BY airline_id").fetchall()
+    departures = db.execute(
+        """SELECT d.departure_id, f.flight_number,
+                  dep.iata_code AS from_airport, arr.iata_code AS to_airport,
+                  date(d.scheduled_departure) AS day,
+                  (SELECT COUNT(*) FROM Bookings b
+                    WHERE b.departure_id = d.departure_id
+                      AND b.booking_status != 'Cancelled') AS sold
+           FROM Departures d
+           JOIN Flights f ON d.flight_id = f.flight_id
+           JOIN Airports dep ON f.departure_airport_id = dep.airport_id
+           JOIN Airports arr ON f.arrival_airport_id = arr.airport_id
+           ORDER BY d.scheduled_departure LIMIT 60""").fetchall()
+    travelers = db.execute("SELECT * FROM Passengers ORDER BY passenger_id DESC LIMIT 200").fetchall()
     return render_template("admin.html", counts=counts, flights=flights,
-                           airports=airports, airlines=airlines)
+                           airports=airports, airlines=airlines,
+                           departures=departures, travelers=travelers)
 
 
 @app.route("/flights/<int:fid>/toggle", methods=["POST"])
@@ -446,6 +693,22 @@ def flight_toggle(fid):
         db.execute("UPDATE Flights SET flight_status = "
                    "CASE WHEN flight_status = 'Active' THEN 'Suspended' ELSE 'Active' END "
                    "WHERE flight_id = ?", (fid,))
+    return redirect(url_for("admin"))
+
+
+@app.route("/flights/<int:fid>/delete", methods=["POST"])
+@admin_only
+def flight_delete(fid):
+    """Staff Delete: remove a timetable flight with no dated departures."""
+    db = get_db()
+    n = db.execute("SELECT COUNT(*) FROM Departures WHERE flight_id = ?",
+                   (fid,)).fetchone()[0]
+    if n:
+        flash(f"Flight has {n} dated departure(s). Suspend it instead of deleting.", "error")
+        return redirect(url_for("admin"))
+    with db:
+        db.execute("DELETE FROM Flights WHERE flight_id = ?", (fid,))
+    flash("Flight deleted.", "ok")
     return redirect(url_for("admin"))
 
 

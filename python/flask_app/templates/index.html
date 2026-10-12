@@ -1,32 +1,31 @@
 {% extends "base.html" %}{% set page='search' %}{% block body %}
 <section class="hero">
-<div class="kicker">SkyRoute · 5 airports · 16 routes · 3 airlines</div>
+<div class="kicker">SkyRoute · 5 airports · 7 routes · 3 airlines</div>
 <h1>FLY FURTHER<span class="lime">.</span><br>PAY LESS<span class="lime">.</span></h1>
-<p class="sub">One search across the whole network — Delhi to Mumbai, Bengaluru to
-Delhi, Hyderabad to Chennai and thirteen more routes. Real seats, real bags,
-real money, one database underneath.</p>
+<p class="sub">One search across the whole network — seven routes, real seats,
+real bags, real money, one database underneath.</p>
 <div class="how">
 <span><b>1</b>Search a route</span><span><b>2</b>Pick a green seat</span>
 <span><b>3</b>Manage it under My bookings</span>
 </div>
 <form class="searchcard" method="post">
-<div class="field"><label>From</label><select name="dep">{% for a in airports %}
-<option value="{{ a.iata_code }}">{{ a.iata_code }} — {{ a.city }}</option>{% endfor %}</select></div>
-<div class="field"><label>To</label><select name="arr">{% for a in airports %}
-<option value="{{ a.iata_code }}">{{ a.iata_code }} — {{ a.city }}</option>{% endfor %}</select></div>
+<div class="field"><label>Route — type it</label>
+<input name="route" list="routelist" placeholder="HYD → BLR" value="HYD-BLR" required autocomplete="off">
+<datalist id="routelist">{% for v, l in routes %}
+<option value="{{ v }}">{{ l }}</option>{% endfor %}</datalist></div>
 <div class="field"><label>Date</label>
 <input type="date" name="day" value="2026-11-03" min="2026-11-01" max="2026-11-07" required></div>
 <div class="field" style="flex:0"><label>&nbsp;</label><button>Search departures</button></div>
 <div class="chips"><span class="mut">Popular right now:</span>
-<button type="button" class="btn ghost small quick" data-dep="HYD" data-arr="BLR">HYD → BLR</button>
-<button type="button" class="btn ghost small quick" data-dep="DEL" data-arr="BOM">DEL → BOM</button>
-<button type="button" class="btn ghost small quick" data-dep="BLR" data-arr="DEL">BLR → DEL</button>
-<button type="button" class="btn ghost small quick" data-dep="MAA" data-arr="HYD">MAA → HYD</button></div>
+<button type="button" class="btn ghost small quick" data-route="HYD-BLR">HYD → BLR</button>
+<button type="button" class="btn ghost small quick" data-route="DEL-BOM">DEL → BOM</button>
+<button type="button" class="btn ghost small quick" data-route="BLR-DEL">BLR → DEL</button>
+<button type="button" class="btn ghost small quick" data-route="MAA-HYD">MAA → HYD</button></div>
 </form>
 <script>
 const sf=document.querySelector('.searchcard');
 document.querySelectorAll('.quick').forEach(b=>{b.onclick=()=>{
-sf.dep.value=b.dataset.dep;sf.arr.value=b.dataset.arr;sf.submit();};});
+sf.route.value=b.dataset.route;sf.submit();};});
 </script></section>
 {% if results %}
 <div class="card">
@@ -43,5 +42,6 @@ sf.dep.value=b.dataset.dep;sf.arr.value=b.dataset.arr;sf.submit();};});
 <td class="mono">{{ r.sold }}/{{ r.capacity or "—" }}<br>
 {% if r.capacity and r.capacity - r.sold <= 12 %}
 <span class="tag bad">Only {{ r.capacity - r.sold }} left</span>{% endif %}</td>
-<td><a class="btn small" href="/book/{{ r.departure_id }}">Choose seat</a></td></tr>{% endfor %}</table>
+<td><a class="btn small" href="/book/{{ r.departure_id }}">Choose seat</a>
+{% if session.get('is_admin') %}<a class="btn small ghost" href="/manifest/{{ r.departure_id }}">Manifest</a>{% endif %}</td></tr>{% endfor %}</table>
 </div>{% endif %}{% endblock %}

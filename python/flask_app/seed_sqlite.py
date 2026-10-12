@@ -56,22 +56,95 @@ for aid in (1, 2, 3, 4, 5):
     for g in range(1, 4):
         con.execute("INSERT INTO Gates (terminal_id, gate_number) VALUES (?, ?)", (t, f"G{g}"))
 
-FIRST = ["Aarav", "Ananya", "Arjun", "Diya", "Kavya", "Meera", "Rahul", "Riya", "Rohan", "Sneha"]
-LAST = ["Sharma", "Rao", "Singh", "Reddy", "Nair", "Gupta", "Iyer", "Kumar"]
 N_PAX = 600
+
+def fetch_names(pool=800):
+    """Real diverse traveler names from the web (randomuser.me, Indian
+    sample — fits our domestic network). Cached to passengers_source.json
+    so reseeds are stable and offline-safe. None = use built-in pool."""
+    import json as _json
+    import urllib.request
+    cache = ROOT / "passengers_source.json"
+    if cache.exists():
+        try:
+            return _json.loads(cache.read_text(encoding="utf-8"))
+        except ValueError:
+            pass
+    try:
+        req = urllib.request.Request(
+            f"https://randomuser.me/api/?results={pool}&nat=in&inc=name,email,phone&noinfo",
+            headers={"User-Agent": "skyroute-dbms-demo"})
+        data = _json.load(urllib.request.urlopen(req, timeout=40))["results"]
+        names = [(d["name"]["first"].title(), d["name"]["last"].title(),
+                  d["email"].lower(),
+                  ("".join(c for c in d["phone"] if c.isdigit())[-10:]
+                   or "9000000000"))
+                 for d in data]
+        cache.write_text(_json.dumps(names), encoding="utf-8")
+        return names
+    except Exception as exc:
+        print("web names unavailable, using built-in pool:", exc)
+        return None
+
+NAMES = fetch_names()
 # Trip budgets: most travelers fly once, some twice, nobody more. This keeps
 # every traveler's story believable: no 14-trip frequent flyers in a demo.
-for i in range(1, N_PAX + 1):
-    fn, ln = random.choice(FIRST), random.choice(LAST)
-    con.execute("INSERT INTO Passengers (first_name, last_name, passport_number, phone, email) "
-                "VALUES (?, ?, ?, ?, ?)",
-                (fn, ln, f"D{200000 + i}", f"98{10000000 + i}", f"{fn.lower()}.{ln.lower()}{i}@example.com"))
+added, i = 0, 0
+while added < N_PAX:
+    if NAMES:
+        fn, ln, email, phone = NAMES[i % len(NAMES)]
+        i += 1
+        if i > len(NAMES) + N_PAX + 500:
+            raise SystemExit("ran out of unique web names")
+        try:
+            con.execute("INSERT INTO Passengers (first_name, last_name, passport_number, phone, email) "
+                        "VALUES (?, ?, ?, ?, ?)",
+                        (fn, ln, f"D{200000 + added + 1}", phone, email))
+        except sqlite3.IntegrityError:
+            continue  # duplicate email in source data: skip them
+        added += 1
+    else:
+        FIRST = ["Aarav", "Ananya", "Arjun", "Diya", "Kavya", "Meera",
+                 "Rahul", "Riya", "Rohan", "Sneha"]
+        LAST = ["Sharma", "Rao", "Singh", "Reddy", "Nair", "Gupta",
+                "Iyer", "Kumar"]
+        for j in range(1, N_PAX + 1):
+            fn, ln = random.choice(FIRST), random.choice(LAST)
+            con.execute("INSERT INTO Passengers (first_name, last_name, passport_number, phone, email) "
+                        "VALUES (?, ?, ?, ?, ?)",
+                        (fn, ln, f"D{200000 + j}", f"98{10000000 + j}",
+                         f"{fn.lower()}.{ln.lower()}{j}@example.com"))
+        added = N_PAX
 
 deps = []  # (did, day, cap)
 did = 0
+# Randomized sparse timetable: every date flies a different random mix of
+# flights, and some routes are dark on some days — like a real schedule.
+# Pinned combos keep the demo stable: 6E-501 + 6E-561 always fly Nov 3,
+# nothing MAA-HYD on Nov 2, departure #1 is 6E-501 on Nov 1.
+# Deterministic (seed 7 above), so reseeds reproduce the same week.
+DAY_OPS = {}
+while True:
+    seen, ok = set(), True
+    for day in range(7):
+        ops = set(random.sample(range(1, 8), random.randint(3, 5)))
+        if day == 0:
+            ops.add(1)
+        if day == 2:
+            ops |= {1, 6}
+        if day == 1:
+            ops.discard(6)
+        key = tuple(sorted(ops))
+        if key in seen:
+            ok = False
+            break
+        seen.add(key)
+        DAY_OPS[day] = sorted(ops)
+    if ok and all(sum(f in DAY_OPS[d] for d in range(7)) >= 2 for f in range(1, 8)):
+        break
 for day in range(7):
     d = date(2026, 11, 1) + timedelta(days=day)
-    for f in range(1, 8):
+    for f in DAY_OPS[day]:
         did += 1
         dep_t, arr_t = SCHED[f - 1][4], SCHED[f - 1][5]
         gate = con.execute(
@@ -106,6 +179,7 @@ for did, day, cap in sorted(deps, key=lambda _: random.random()):
 con.commit()
 n = lambda t: con.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
 top = con.execute("SELECT passenger_id, COUNT(*) c FROM Bookings GROUP BY 1 ORDER BY c DESC LIMIT 1").fetchone()
+names = con.execute("SELECT COUNT(DISTINCT first_name), COUNT(DISTINCT last_name) FROM Passengers").fetchone()
 print(f"departures={n('Departures')} bookings={n('Bookings')} bags={n('Baggage')} "
-      f"max trips by one traveler={top[1]}")
+      f"max trips by one traveler={top[1]} distinct first/last={names[0]}/{names[1]}")
 con.close()

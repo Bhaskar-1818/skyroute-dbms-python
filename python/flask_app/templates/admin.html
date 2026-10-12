@@ -1,7 +1,16 @@
 {% extends "base.html" %}{% set page='admin' %}{% block body %}
 <div class="card">
-<h2>Airline admin</h2>
-<p>{% for k,v in counts.items() %}<b>{{ k }}:</b> <span class="mono">{{ v }}</span> &nbsp;{% endfor %}</p></div>
+<h2>Airline admin — staff portal</h2>
+<p>{% for k,v in counts.items() %}<b>{{ k }}:</b> <span class="mono">{{ v }}</span> &nbsp;{% endfor %}</p>
+<p class="mut">Staff CRUD: add / suspend / delete flights below, pick any departure for its passenger manifest, manage travelers under Passengers.</p></div>
+<div class="card">
+<h2>Departures → passenger manifest</h2>
+<p class="mut">Pick a flight to see everyone on it.</p>
+<table><tr><th>Departure</th><th>Route</th><th>Date</th><th>Sold</th><th></th></tr>
+{% for d in departures %}<tr>
+<td class="mono">#{{ d.departure_id }}</td><td><span class="flight">{{ d.flight_number }}</span> <span class="mut">{{ d.from_airport }} → {{ d.to_airport }}</span></td>
+<td class="mono">{{ d.day }}</td><td class="mono">{{ d.sold }}</td>
+<td><a class="btn small" href="/manifest/{{ d.departure_id }}">Open manifest</a></td></tr>{% endfor %}</table></div>
 <div class="card">
 <h2>Timetable</h2>
 <table><tr><th>Flight</th><th>Airline</th><th>Status</th><th></th></tr>
@@ -9,7 +18,37 @@
 <td><span class="flight">{{ f.flight_number }}</span></td><td>{{ f.airline_name }}</td>
 <td><span class="tag {{ 'ok' if f.flight_status=='Active' else 'dim' }}">{{ f.flight_status }}</span></td>
 <td><form class="inline" action="/flights/{{ f.flight_id }}/toggle" method="post">
-<button class="ghost">Suspend / Activate</button></form></td></tr>{% endfor %}</table></div>
+<button class="ghost">Suspend / Activate</button></form>
+<form class="inline" action="/flights/{{ f.flight_id }}/delete" method="post"
+onsubmit="return confirm('Delete flight {{ f.flight_number }}? Only works with zero departures.')">
+<button class="danger">Delete</button></form></td></tr>{% endfor %}</table></div>
+<div class="card">
+<h2>Travelers — staff only</h2>
+<p class="mut">The full traveler register lives here, behind the staff PIN — never on a public page. Preview anyone's tickets, correct details, or remove a traveler (removes their bookings too).</p>
+<input id="paxfilter" placeholder="Type to find a traveler…" style="max-width:320px;margin-bottom:8px" autocomplete="off">
+<table id="travtable"><tr><th>ID</th><th>Name</th><th>Passport</th><th>Phone</th><th>Email</th><th></th></tr>
+{% for p in travelers %}<tr data-pax>
+<td class="mono">{{ p.passenger_id }}</td><td><b>{{ p.first_name }} {{ p.last_name }}</b></td>
+<td class="mono">{{ p.passport_number or "—" }}</td><td class="mono">{{ p.phone }}</td><td>{{ p.email }}</td>
+<td><form class="inline" action="/travel-as/{{ p.passenger_id }}" method="post">
+<button class="ghost">Travel as →</button></form>
+<details class="inline"><summary class="btn ghost small" style="display:inline-block;cursor:pointer">Edit</summary>
+<form action="/passengers/{{ p.passenger_id }}/edit" method="post" style="margin-top:8px">
+<input name="first_name" value="{{ p.first_name }}" required style="max-width:130px">
+<input name="last_name" value="{{ p.last_name }}" required style="max-width:130px">
+<input name="passport_number" value="{{ p.passport_number or '' }}" placeholder="Passport" style="max-width:130px">
+<input name="phone" value="{{ p.phone }}" required style="max-width:130px">
+<input name="email" value="{{ p.email }}" required style="max-width:200px">
+<button class="small">Save</button></form></details>
+<form class="inline" action="/passengers/{{ p.passenger_id }}/delete" method="post"
+onsubmit="return confirm('Delete this passenger and all their bookings?')">
+<button class="danger">Delete</button></form></td></tr>{% endfor %}</table>
+<script>
+const pf=document.getElementById('paxfilter');
+pf.oninput=()=>{const q=pf.value.toLowerCase();
+document.querySelectorAll('#travtable tr[data-pax]').forEach(r=>{
+r.style.display=r.textContent.toLowerCase().includes(q)?'':'none';});};
+</script></div>
 <div class="card">
 <h2>Add a flight</h2>
 <p class="mut">The database itself refuses a flight whose departure and arrival airports match.</p>

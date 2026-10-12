@@ -46,7 +46,7 @@ WHERE b.departure_id = 1
 GROUP BY b.booking_id
 ORDER BY b.seat_number LIMIT 20;
 
--- J5: Pilots with licence (supertype + subtype JOIN).
+-- J5: Pilots with licence (Employees 1-1 role-table JOIN).
 SELECT e.full_name, pl.license_number, pl.license_type, a.iata_code AS base
 FROM Employees e
 JOIN Pilots pl ON e.employee_id = pl.employee_id

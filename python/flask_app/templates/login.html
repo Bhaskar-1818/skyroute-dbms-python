@@ -1,0 +1,14 @@
+{% extends "base.html" %}{% set page='bookings' %}{% block body %}
+<div class="card authform" style="max-width:620px;margin:32px auto">
+<p class="eyebrow">Traveler access</p>
+<h2>Traveler login</h2>
+<p class="mut">Enter your unique traveler ID (shown right after you registered) plus the demo password. You'll see <b>only your bookings</b> — nobody else's.</p>
+<form method="post">
+<div class="field"><label>Traveler ID</label>
+<input name="passenger_id" placeholder="e.g. 600" required inputmode="numeric"></div>
+<div class="field"><label>Demo password</label>
+<input type="password" name="password" placeholder="demo password" required></div>
+<p class="hint">Demo password: <span class="mono"><b>fly123</b></span> — same for everyone in this demo.</p>
+<button style="width:100%">Log in</button></form>
+<p class="mut">Don't know your ID? It was shown right after you registered. New here? <a href="/passengers">Register first</a>.</p>
+</div>{% endblock %}

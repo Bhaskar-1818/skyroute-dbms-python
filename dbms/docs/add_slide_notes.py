@@ -13,7 +13,7 @@ NOTES = [
     "Transactions. Animation: Demo B rollback as a two-step reveal. The seat stays free.",
     "Indexing. Animation: before/after EXPLAIN bars. Say the FK line out loud: no cargo cult.",
     "Access + testing. Animation: grant table, then the denied INSERT. 30 checks, all expected-first.",
-    "Flask site. Animation: screenshots of board, seat map, refusal message. Live demo if network allows.",
+    "Flask site. Animation: login gate, manifest table reveal. Live demo: traveler books, staff checks in from the manifest.",
     "Result. Animation: checklist ticks. Close with the demo invitation.",
 ]
 

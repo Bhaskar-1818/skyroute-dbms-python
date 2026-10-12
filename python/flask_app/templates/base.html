@@ -1,6 +1,6 @@
 <!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SkyRoute — book a flight in 3 steps</title>
+<title>SkyRoute Ops — Airplane Management System</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
@@ -8,34 +8,66 @@
    pills for actions, 10px cards, flat hairlines, dark-section rhythm. */
 :root{--forest:#163300;--lime:#9fe870;--spruce:#054d28;--mist:#e2f6d5;
 --fog:#e8ebe6;--paper:#fff;--char:#454745;--obsidian:#0e0f0c;
---pebble:#868685;--slate:#6a6c6a;--red:#cb272f;--line:#dfe4dc}
+--pebble:#868685;--slate:#6a6c6a;--red:#cb272f;--line:#dfe4dc;
+--grove:#0C1F00;--fern:#2E5211;--clover:#4C7A1E;--dew:#EFF9E4;
+--sh-card:rgba(14,15,12,.12) 0 0 0 1px,0 18px 44px -20px rgba(12,31,0,.55);
+--sh-btn:0 8px 18px -8px rgba(12,31,0,.55)}
 *{box-sizing:border-box}
+/* motion tokens: sampled springs (firm, low overshoot — ops tool, not a toy) */
+:root{--ease-snap:0.35s linear(0, 0.025, 0.089, 0.173, 0.268, 0.364, 0.457, 0.544, 0.623, 0.692, 0.751, 0.802, 0.845, 0.88, 0.909, 0.932, 0.95, 0.964, 0.975, 0.984, 0.99, 0.995, 0.998, 1, 1.001, 1.002, 1.003, 1.003, 1.003, 1.003, 1);
+--ease-settle:0.61s linear(0, 0.035, 0.121, 0.235, 0.359, 0.482, 0.596, 0.697, 0.783, 0.853, 0.908, 0.95, 0.981, 1.003, 1.016, 1.024, 1.028, 1.028, 1.027, 1.024, 1.021, 1.017, 1.014, 1.011, 1.008, 1.006, 1.004, 1.002, 1.001, 1, 1)}
+/* smooth page-to-page transitions, no framework needed */
+@view-transition{navigation:auto}
+::view-transition-old(root){animation:vt-out .16s ease-out both}
+::view-transition-new(root){animation:vt-in .28s ease-out both}
+@keyframes vt-out{to{opacity:0}}
+@keyframes vt-in{from{opacity:0;transform:translateY(6px)}}
 body{font-family:'Inter',"Segoe UI",Arial,sans-serif;margin:0;
 background:var(--forest);color:var(--char);font-size:16px;-webkit-font-smoothing:antialiased;
 background-image:radial-gradient(rgba(159,232,112,.06) 1px,transparent 1.1px),
-radial-gradient(ellipse 80% 340px at 50% -120px,rgba(159,232,112,.10),transparent 70%);
-background-size:26px 26px,100% 100%
+radial-gradient(ellipse 90% 420px at 50% -140px,rgba(46,82,17,.55),transparent 70%),
+radial-gradient(ellipse 55% 320px at 88% -40px,rgba(76,122,30,.28),transparent 70%);
+background-size:26px 26px,100% 100%,100% 100%;background-color:var(--grove)}
 main>.wrap>h2{color:#fff}
+main>.wrap>h2 .mut{color:#A9BFAE}
 footer.site{border-top:1px solid rgba(255,255,255,.16);color:#cfe3c8}
 footer.site b{color:var(--lime)}
 .wrap{max-width:1200px;margin:0 auto;padding:0 24px}
 /* top nav: white, hairline bottom, pill section switcher */
-header.top{position:sticky;top:0;z-index:20;background:var(--paper);
-border-bottom:1px solid var(--line)}
+header.top{position:sticky;top:0;z-index:20;
+background:linear-gradient(180deg,rgba(240,250,230,.88),rgba(255,255,255,.78));
+-webkit-backdrop-filter:blur(18px) saturate(1.5);backdrop-filter:blur(18px) saturate(1.5);
+border-bottom:1px solid rgba(255,255,255,.65);
+box-shadow:0 12px 32px -18px rgba(12,31,0,.45)}
+header.top::after{content:"";position:absolute;left:0;right:0;top:0;height:1px;
+background:linear-gradient(90deg,transparent,rgba(255,255,255,.9),transparent)}
 .navbar{display:flex;align-items:center;gap:18px;height:64px}
 .brand{font-weight:900;font-size:20px;letter-spacing:-.02em;color:var(--forest);
 text-decoration:none}
 .brand b{color:var(--forest)}.brand .dot{color:var(--forest)}
-.segments{display:flex;background:var(--fog);border-radius:9999px;padding:3px;gap:2px}
+.segments{display:flex;background:linear-gradient(180deg,rgba(255,255,255,.6),rgba(232,235,230,.55));border-radius:9999px;padding:3px;gap:2px;
+position:relative;touch-action:pan-y;user-select:none;-webkit-user-select:none;
+box-shadow:inset 0 1px 0 rgba(255,255,255,.7),inset 0 -2px 6px rgba(22,51,0,.08)}
+.seg-ind{position:absolute;top:3px;bottom:3px;left:0;width:0;border-radius:9999px;
+background:linear-gradient(180deg,var(--fern),var(--forest));
+box-shadow:0 4px 10px -4px rgba(12,31,0,.5);opacity:0;z-index:0;
+transition:left var(--ease-snap),width var(--ease-snap),opacity .2s ease}
+.segments a{position:relative;z-index:1}
+.segments.js-seg .seg-ind{opacity:1}
+.segments.js-seg a.here{background:transparent;color:#fff}
+.segments.js-seg a:hover{background:transparent}
+.segments.js-seg.drag a.here{color:var(--char)}
+.segments.js-seg a.cand{color:#fff}
 .segments a{text-decoration:none;color:var(--char);font-weight:500;font-size:14px;
 padding:8px 16px;border-radius:9999px;transition:background .2s ease}
 .segments a:hover{background:var(--mist)}
-.segments a.here{background:var(--forest);color:#fff}
+.segments a.here{background:linear-gradient(180deg,var(--fern),var(--forest));color:#fff;
+box-shadow:0 4px 10px -4px rgba(12,31,0,.5)}
 /* hero: dark forest section, block display type, lime punctuation */
 .hero{background:var(--forest);color:#fff;border-radius:28px;margin:32px 0 0;
 padding:56px 48px 0;overflow:hidden;position:relative;
 background-image:radial-gradient(rgba(159,232,112,.13) 1.2px,transparent 1.3px);
-background-size:26px 26px}
+background-size:26px 26px;box-shadow:0 30px 60px -30px rgba(12,31,0,.8)}
 .hero .kicker{color:var(--lime);font-weight:600;font-size:14px;letter-spacing:.14em;
 text-transform:uppercase}
 .hero h1{font-size:clamp(44px,7vw,96px);line-height:.95;letter-spacing:-.03em;
@@ -47,9 +79,14 @@ font-weight:900;margin:10px 0 8px;color:#fff}
 font-size:14px;font-weight:500}
 .how b{color:var(--lime);margin-right:6px}
 /* inset white search card inside the dark hero */
-.searchcard{background:var(--paper);border-radius:10px;padding:20px;
-margin:30px 0 -1px;display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;
-align-items:end;box-shadow:0 10px 32px rgba(0,0,0,.18)}
+.searchcard{background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(240,250,230,.84));
+-webkit-backdrop-filter:blur(20px) saturate(1.4);backdrop-filter:blur(20px) saturate(1.4);
+border:1px solid rgba(255,255,255,.7);
+border-radius:14px;padding:20px;
+margin:30px 0 -1px;display:grid;grid-template-columns:1fr 1fr auto;gap:12px;
+align-items:end;box-shadow:0 18px 44px -18px rgba(12,31,0,.65),inset 0 1px 0 #fff}
+.searchcard input,.searchcard select{height:50px}
+.searchcard .chips{grid-column:1/-1;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .searchcard .field{display:flex;flex-direction:column;gap:4px;min-width:0}
 .searchcard button{white-space:nowrap;padding:12px 26px;height:50px}
 .searchcard .chips{grid-column:1/-1;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -64,17 +101,22 @@ select:focus,input:focus{outline:none;border-color:var(--forest)}
 /* pill CTA: lime fill does all the work */
 button,.btn{background:var(--lime);color:var(--forest);border:none;border-radius:9999px;
 padding:12px 26px;font-size:16px;font-weight:600;cursor:pointer;text-decoration:none;
-display:inline-block;transition:transform .18s ease,filter .18s ease;white-space:nowrap}
+display:inline-block;transition:transform var(--ease-snap),filter .18s ease,background-color .2s ease,box-shadow .2s ease;white-space:nowrap;
+box-shadow:var(--sh-btn)}
 button:hover,.btn:hover{filter:brightness(.96);transform:translateY(-1px)}
 button:active,.btn:active{transform:translateY(0) scale(.98)}
-button.ghost,.btn.ghost{background:var(--paper);color:var(--forest);border:1px solid var(--forest);
+/* metal-button physics on primaries: brighten on hover, press in on hold */
+button:not(.ghost):hover,.btn:not(.ghost):hover{filter:brightness(1.07)}
+button:not(.ghost):active,.btn:not(.ghost):active{transform:translateY(1px) scale(.98);filter:brightness(.93)}
+button.ghost,.btn.ghost{background:var(--paper);color:var(--obsidian);border:1px solid var(--pebble);
 padding:8px 16px;font-size:14px}
+button.ghost:hover,.btn.ghost:hover{border-color:var(--fern);background:var(--dew)}
 button.danger,.btn.danger{background:var(--paper);color:var(--red);border:1px solid var(--red);
 padding:8px 16px;font-size:14px}
 button.small,.btn.small{padding:8px 16px;font-size:14px}
 /* cards: fog surface, hairline ring, staggered entrance */
 .card{background:var(--paper);border-radius:10px;padding:24px;margin:20px 0;
-box-shadow:rgba(14,15,12,.12) 0 0 0 1px;animation:rise .5s ease both}
+box-shadow:var(--sh-card);animation:rise var(--ease-settle) both}
 .card:nth-child(2){animation-delay:.06s}.card:nth-child(3){animation-delay:.12s}
 .card:nth-child(4){animation-delay:.18s}.card:nth-child(5){animation-delay:.24s}
 @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
@@ -84,13 +126,17 @@ h2{color:var(--obsidian);letter-spacing:-.02em;margin:0 0 6px}
 .flight{font-family:Consolas,Menlo,monospace;font-weight:700;font-size:18px;color:var(--forest)}
 table{border-collapse:collapse;width:100%;margin:8px 0}
 th,td{padding:10px 12px;text-align:left;font-size:15px;border-bottom:1px solid var(--line)}
-th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--slate)}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--spruce)}
+table tbody tr{transition:background-color .15s ease}
+table tbody tr:nth-child(even){background:#F5F7F3}
+table tbody tr:hover{background:var(--dew)}
 /* tags: pill badges */
 .tag{display:inline-block;border-radius:9999px;padding:5px 14px;font-size:13px;font-weight:500}
-.tag.gate{background:var(--forest);color:#fff;font-family:Consolas,monospace}
-.tag.ok{background:var(--mist);color:var(--forest)}
+.tag.gate{background:linear-gradient(180deg,var(--fern),var(--forest));color:#fff;font-family:Consolas,monospace}
+.tag.ok{background:var(--mist);color:var(--forest);box-shadow:inset 0 0 0 1px rgba(46,82,17,.28)}
 .tag.dim{background:#fff;color:var(--slate);box-shadow:inset 0 0 0 1px var(--pebble)}
-.tag.dark{background:var(--forest);color:var(--lime)}
+.tag.dark{background:linear-gradient(180deg,var(--fern),var(--forest));color:var(--lime);
+box-shadow:0 4px 10px -4px rgba(12,31,0,.6)}
 .tag.warn{background:var(--paper);color:var(--forest);box-shadow:inset 0 0 0 1px var(--forest)}
 .tag.bad{background:#fbe4e4;color:var(--red)}
 .tag.blue{background:#e3edf4;color:var(--signal,#0b4c72)}
@@ -103,8 +149,9 @@ th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--slat
 background:var(--lime);color:var(--forest);border-radius:9999px;width:26px;height:26px;
 font-size:14px;line-height:26px;text-align:center}
 /* baggage allowance bar: 20 kg free per bag */
-.bagbar{height:8px;border-radius:9999px;background:var(--fog);margin:6px 0 2px;overflow:hidden}
-.bagbar i{display:block;height:100%;background:var(--forest);border-radius:9999px}
+.bagbar{height:8px;border-radius:9999px;background:var(--dew);margin:6px 0 2px;overflow:hidden;
+box-shadow:inset 0 1px 3px rgba(22,51,0,.2)}
+.bagbar i{display:block;height:100%;background:linear-gradient(90deg,var(--fern),var(--forest));border-radius:9999px}
 .bagbar.over i{background:var(--red)}
 /* fare box on the booking page */
 .fare{background:var(--forest);color:#fff;border-radius:10px;padding:16px 20px;margin:14px 0}
@@ -122,53 +169,247 @@ border-radius:10px;cursor:pointer;transition:transform .15s ease,background .15s
 .seats button:disabled{background:var(--fog);border-color:var(--fog);color:var(--pebble);
 cursor:not-allowed;text-decoration:line-through}
 .seats button.picked{background:var(--lime);border-color:var(--lime);color:var(--forest);
-animation:pop .25s ease}
+animation:pop var(--ease-snap)}
 .seats .aisle{visibility:hidden}
 @keyframes pop{0%{transform:scale(.85)}60%{transform:scale(1.08)}100%{transform:scale(1)}}
 /* boarding pass: white ticket, perforated stub */
 .ticket{background:var(--paper);border-radius:10px;display:grid;
-grid-template-columns:210px 1fr;box-shadow:rgba(14,15,12,.12) 0 0 0 1px;
-margin:16px 0;overflow:hidden;animation:rise .5s ease both}
-.stub{background:var(--forest);color:#fff;padding:20px;text-align:center}
-.stub .seat{font-size:44px;font-weight:900;letter-spacing:-.03em;color:var(--lime)}
+grid-template-columns:200px minmax(0,1fr);box-shadow:var(--sh-card);
+margin:16px 0;overflow:hidden;animation:rise var(--ease-settle) both}
+article.ticket:nth-of-type(2){animation-delay:.05s}
+article.ticket:nth-of-type(3){animation-delay:.1s}
+article.ticket:nth-of-type(4){animation-delay:.15s}
+article.ticket:nth-of-type(5){animation-delay:.2s}
+article.ticket:nth-of-type(n+6){animation-delay:.25s}
+.stub{background:linear-gradient(165deg,var(--fern) 0%,var(--forest) 55%,var(--grove) 135%);color:#fff;padding:20px;text-align:center}
+.stub .seat{font-size:44px;font-weight:900;letter-spacing:-.03em;color:var(--lime);
+text-shadow:0 0 24px rgba(159,232,112,.5)}
 .stub .fl{font-family:Consolas,monospace;font-size:14px;color:#cfe3c8}
 .tbody{padding:18px 22px;border-left:2px dashed var(--pebble);position:relative}
 .tbody h3{margin:0 0 4px;color:var(--obsidian);letter-spacing:-.01em}
 .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 form.inline{display:inline}
+/* services row: bag pill-group joined, edit docked right, no orphans */
+.actionrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}
+.actionrow .actions{margin-top:0}
+.actionrow .edit{margin-top:0;margin-left:auto}
+.baggroup{display:inline-flex;align-items:stretch}
+.baggroup input{width:88px;border-radius:9999px 0 0 9999px;border-right:none;
+padding:8px 6px 8px 14px;font-size:14px}
+.baggroup input:focus{box-shadow:none}
+.baggroup:focus-within{box-shadow:0 0 0 3px rgba(159,232,112,.45);border-radius:9999px}
+.baggroup button{border-radius:0 9999px 9999px 0}
+/* joined input+button for PIN entries (same fused language as bag control) */
+.joingroup{display:inline-flex;align-items:stretch;vertical-align:middle}
+.joingroup input{border-radius:9999px 0 0 9999px;border-right:none;text-align:center}
+.joingroup input:focus{box-shadow:none}
+.joingroup:focus-within{box-shadow:0 0 0 3px rgba(159,232,112,.45);border-radius:9999px}
+.joingroup button{border-radius:0 9999px 9999px 0}
 /* flash: slides down, lime for ok */
 .flash{border-radius:10px;padding:13px 18px;margin:16px 0;font-weight:500;
 animation:drop .3s ease both}
 .flash.ok{background:var(--mist);color:var(--forest)}
 .flash.error{background:#fbe4e4;color:var(--red)}
 @keyframes drop{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+/* themed autocomplete: type-in traveler pickers (replaces native popups) */
+.acwrap{position:relative}
+.aclist{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:30;
+background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(240,250,230,.88));
+-webkit-backdrop-filter:blur(16px) saturate(1.4);backdrop-filter:blur(16px) saturate(1.4);
+border-radius:10px;overflow:hidden auto;max-height:300px;
+box-shadow:rgba(14,15,12,.12) 0 0 0 1px,0 14px 34px rgba(0,0,0,.20);
+transform-origin:top center}
+.aclist:not([hidden]){animation:acin .22s ease-out both}
+@keyframes acin{from{opacity:0;transform:translateY(-4px) scaleY(.96)}}
+.aclist button{display:flex;gap:10px;align-items:baseline;width:100%;
+background:none;border:none;border-radius:0;padding:10px 14px;font-size:14px;
+color:var(--char);cursor:pointer;text-align:left}
+.aclist button:hover{background:var(--mist)}
+.aclist button b{font-family:Consolas,monospace;color:var(--forest)}
+/* ticket: stub keeps its lane, body never slides under it */
+.ticket{grid-template-columns:200px minmax(0,1fr)}
+.stub{min-width:0;overflow:hidden}
+.tbody{min-width:0}
+.tbody h3{overflow-wrap:break-word}
+/* rebuilt ticket: boarding-pass hierarchy, grouped actions, animated edit */
+.stub{display:flex;flex-direction:column;justify-content:center;gap:6px}
+.gatechip{display:inline-block;background:rgba(255,255,255,.14);color:#e9f4e2;border-radius:9999px;padding:4px 12px;font-family:Consolas,monospace;font-size:12px}
+.t-head{display:flex;justify-content:space-between;align-items:start;gap:12px;flex-wrap:wrap}
+.t-head h3{margin:0}
+.tags{margin:0;display:flex;gap:6px;flex-wrap:wrap}
+.journey{display:flex;align-items:center;gap:14px;background:linear-gradient(180deg,var(--dew),var(--mist));border-radius:10px;padding:14px 18px;margin:12px 0;
+box-shadow:inset 0 1px 0 #fff,inset 0 -3px 8px rgba(22,51,0,.08)}
+.journey .ap{font-weight:800;font-size:22px;color:var(--forest);display:block}
+.journey .tm{font-size:13px;color:var(--slate);display:block}
+.jmid{flex:1;display:flex;align-items:center;gap:8px;min-width:60px}
+.jline{flex:1;height:2px;background:#fff;border-radius:2px}
+.jplane{background:var(--lime);color:var(--forest);border-radius:9999px;width:28px;height:28px;font-size:14px;line-height:28px;text-align:center;flex:none;
+box-shadow:0 5px 12px -4px rgba(12,31,0,.55)}
+.jflight{font-family:Consolas,monospace;font-size:12px;color:var(--spruce);background:#fff;border-radius:9999px;padding:3px 10px;flex:none}
+.jto{text-align:right}
+.specs{display:flex;gap:26px;flex-wrap:wrap;margin:4px 0 2px}
+.specs div{margin:0}
+.specs dt{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--slate)}
+.specs dd{margin:2px 0 0;font-weight:700;font-size:17px;color:var(--obsidian)}
+.specs dd.due{color:var(--red)}
+.edit{margin-top:12px}
+.edit summary{list-style:none;cursor:pointer}
+.edit summary::-webkit-details-marker{display:none}
+.edit-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows var(--ease-settle)}
+.edit[open] .edit-body{grid-template-rows:1fr}
+.edit-body>div{overflow:hidden;min-height:0}
+.edit-body form{margin-top:10px}
+@media (max-width:760px){.journey{flex-wrap:wrap}.jmid{flex-basis:100%;order:3}}
 footer.site{margin-top:48px;padding:22px 0 40px;font-size:13px}
 @media (max-width:760px){.ticket{grid-template-columns:1fr}.tbody{border-left:none;
 border-top:2px dashed var(--pebble)}.hero{padding:36px 24px 0}.how{display:none}}
+/* smooth motion pass: page enter, control transitions, focus glow */
+html{scroll-behavior:smooth}
+main>.wrap{animation:pagein .35s ease both}
+@keyframes pagein{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+select,input,textarea{transition:border-color .2s ease,box-shadow .2s ease}
+select:focus,input:focus{box-shadow:0 0 0 3px rgba(159,232,112,.45)}
+.segments a,.tag,.btn,button{transition:background .2s ease,filter .18s ease,transform .18s ease}
+.card{transition:box-shadow .25s ease,transform .25s ease}
+a{transition:color .15s ease}
+main a:not(.btn):not(.tag){color:var(--spruce);text-decoration-color:rgba(5,77,40,.35)}
+main a:not(.btn):not(.tag):hover{color:var(--fern)}
+/* auth + register form grids */
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0}
+.formgrid .span2{grid-column:1/-1}
+.formgrid .field{min-width:0}
+.authform .field{margin:0 0 14px}
+.authform input{width:100%}
+.hint{background:var(--fog);border-radius:10px;padding:12px 16px;font-size:14px;color:var(--char)}
+.hint b{color:var(--forest)}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--spruce);margin:0 0 4px}
+@media (max-width:640px){.formgrid{grid-template-columns:1fr}}
+/* refractive liquid glass (21st.dev-style distortion) only where supported;
+everywhere else the frosted-blur fallback above keeps working */
+@supports (backdrop-filter:url(#sky-glass)){
+header.top,.searchcard,.aclist{-webkit-backdrop-filter:url(#sky-glass);backdrop-filter:url(#sky-glass)}
+}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style></head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<defs>
+<filter id="sky-glass" x="0%" y="0%" width="100%" height="100%" colorInterpolationFilters="sRGB">
+<feTurbulence type="fractalNoise" baseFrequency="0.04 0.06" numOctaves="1" seed="7" result="n"/>
+<feGaussianBlur in="n" stdDeviation="1.5" result="bn"/>
+<feDisplacementMap in="SourceGraphic" in2="bn" scale="36" xChannelSelector="R" yChannelSelector="B" result="d"/>
+<feGaussianBlur in="d" stdDeviation="2.5" result="final"/>
+<feComposite in="final" in2="final" operator="over"/>
+</filter>
+</defs>
+</svg>
 <header class="top"><div class="wrap navbar">
-<a class="brand" href="/">SkyRoute<span class="dot">.</span></a>
+<a class="brand" href="/">SkyRoute Ops<span class="dot">.</span></a>
 <nav class="segments">
-<a href="/" class="{{ 'here' if page=='search' else '' }}">Search</a>
-<a href="/bookings" class="{{ 'here' if page=='bookings' else '' }}">My bookings</a>
-<a href="/passengers" class="{{ 'here' if page=='pax' else '' }}">Passengers</a>
-<a href="/admin" class="{{ 'here' if page=='admin' else '' }}">Admin</a>
+<span class="seg-ind" aria-hidden="true"></span>
+<a href="/" class="{{ 'here' if page=='search' else '' }}">Flights</a>
+<a href="/bookings?pax=0" class="{{ 'here' if page=='bookings' else '' }}">Bookings</a>
+<a href="/passengers" class="{{ 'here' if page=='pax' else '' }}">Register</a>
+<a href="/admin" class="{{ 'here' if page=='admin' else '' }}">Staff</a>
 </nav>
+<script>
+/* Apple-Music-style sliding pill: drag it across sections and the page only
+changes once it lands. Plain taps navigate instantly as before. Vanilla JS. */
+(function(){
+var nav=document.querySelector('.segments');if(!nav)return;
+var links=Array.prototype.slice.call(nav.querySelectorAll('a'));
+var ind=nav.querySelector('.seg-ind');if(!ind||!links.length)return;
+links.forEach(function(l){l.setAttribute('draggable','false');});
+nav.addEventListener('dragstart',function(e){e.preventDefault();});
+var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+function hereEl(){return nav.querySelector('a.here')||links[0];}
+function place(el,animate){
+ind.style.transition=animate?'':'none';
+ind.style.left=el.offsetLeft+'px';
+ind.style.width=el.offsetWidth+'px';
+if(!animate){void ind.offsetWidth;ind.style.transition='';}
+}
+nav.classList.add('js-seg');
+place(hereEl(),false);
+if(document.fonts&&document.fonts.ready){document.fonts.ready.then(function(){if(!dragging)place(hereEl(),false);});}
+window.addEventListener('resize',function(){if(!dragging)place(hereEl(),false);});
+window.addEventListener('load',function(){if(!dragging)place(hereEl(),false);});
+var dragging=false,moved=false,sx=0,base=0,pid=null,suppress=false;
+nav.addEventListener('pointerdown',function(e){
+if(e.button!==undefined&&e.button>0)return;
+var a=e.target.closest?e.target.closest('a'):null;if(!a)return;
+dragging=true;moved=false;sx=e.clientX;pid=e.pointerId;base=ind.offsetLeft;
+try{nav.setPointerCapture(pid);}catch(_){}
+ind.style.transition='none';
+});
+nav.addEventListener('pointermove',function(e){
+if(!dragging||e.pointerId!==pid)return;
+var dx=e.clientX-sx;
+if(Math.abs(dx)>6){moved=true;nav.classList.add('drag');}
+if(!moved)return;
+if(e.cancelable)e.preventDefault();
+var min=3,max=nav.clientWidth-ind.offsetWidth-3;
+if(max<min)max=min;
+var x=Math.max(min,Math.min(max,base+dx));
+/* magnetic snap: ease toward the nearest section center when close */
+var ci=x+ind.offsetWidth/2,bi=0,bd=1e9,k2,cc;
+for(k2=0;k2<links.length;k2++){cc=links[k2].offsetLeft+links[k2].offsetWidth/2;if(Math.abs(cc-ci)<bd){bd=Math.abs(cc-ci);bi=k2;}}
+if(bd<18){cc=links[bi].offsetLeft+links[bi].offsetWidth/2;x+=(cc-(x+ind.offsetWidth/2))*0.5;
+x=Math.max(min,Math.min(max,x));}
+ind.style.left=x+'px';
+var cx=x+ind.offsetWidth/2,i,l;
+for(i=0;i<links.length;i++){l=links[i];
+links[i].classList.toggle('cand',cx>=l.offsetLeft&&cx<l.offsetLeft+l.offsetWidth);}
+},{passive:false});
+function clearCand(){for(var i=0;i<links.length;i++)links[i].classList.remove('cand');}
+function finish(e){
+if(!dragging||(e&&e.pointerId!==pid))return;
+dragging=false;
+nav.classList.remove('drag');
+try{nav.releasePointerCapture(pid);}catch(_){}
+ind.style.transition='';
+if(!moved){place(hereEl());return;}
+var cx=ind.offsetLeft+ind.offsetWidth/2,target=links[0],i,l;
+for(i=0;i<links.length;i++){l=links[i];if(cx>=l.offsetLeft&&cx<l.offsetLeft+l.offsetWidth){target=l;break;}}
+clearCand();
+if(target===hereEl()){place(hereEl());return;}
+suppress=true;
+setTimeout(function(){suppress=false;},600);
+place(target);
+setTimeout(function(){location.href=target.getAttribute('href');},reduce?0:300);
+}
+nav.addEventListener('pointerup',finish);
+nav.addEventListener('pointercancel',function(){dragging=false;nav.classList.remove('drag');clearCand();ind.style.transition='';place(hereEl());});
+nav.addEventListener('click',function(e){if(suppress){e.preventDefault();e.stopPropagation();suppress=false;}},true);
+})();
+</script>
 <span style="margin-left:auto"></span>
+{% if session.get('is_admin') %}
+<form class="inline" action="/staff-logout" method="post" title="Lock the staff portal again"><button class="ghost small">Lock staff</button></form>
+{% endif %}
 {% if traveler %}
 <a class="tag ok" style="text-decoration:none" href="/bookings" title="Filtered to your tickets">
-Traveling as {{ traveler.first_name }} {{ traveler.last_name }}</a>
+{{ traveler.first_name }} {{ traveler.last_name }}</a>
+<form class="inline" action="/logout" method="post"><button class="ghost small">Logout</button></form>
 {% else %}
-<a class="tag dim" style="text-decoration:none" href="/passengers" title="Pick who you are">
-Guest · all bookings visible</a>
+<a class="btn small" href="/login">Login</a>
 {% endif %}</div></header>
 <main><div class="wrap">
 {% with msgs = get_flashed_messages(with_categories=true) %}
 {% for cat, m in msgs %}<div class="flash {{ cat }}">{{ m }}</div>{% endfor %}{% endwith %}
 {% block body %}{% endblock %}
 </div></main>
-<footer class="site"><div class="wrap"><b>SkyRoute.</b> Flask + SQLite demo ·
-baggage rule: 20 kg free, Rs 500 per extra kg · every refusal you see is a database constraint talking</div></footer>
+<footer class="site"><div class="wrap"><b>SkyRoute Ops.</b> Airplane Management System · staff portal ·
+baggage rule: 20 kg free, Rs 500 per extra kg · staff PIN-gated CRUD</div></footer>
+<script type="module">
+/* Motion demo (CDN vanilla JS, no npm install): staggered hero entrance.
+   Scoped to .hero so only the home page is affected. Fails safe offline
+   and honors prefers-reduced-motion. Safe to delete; page works without it. */
+try {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) throw 'reduced';
+  const { animate, stagger } = await import('https://cdn.jsdelivr.net/npm/motion@latest/+esm');
+  const els = document.querySelectorAll('.hero > *');
+  if (els.length) animate(els, { opacity: [0, 1], y: [16, 0] }, { duration: 0.55, delay: stagger(0.07), easing: 'ease-out' });
+} catch {}
+</script>
 </body></html>

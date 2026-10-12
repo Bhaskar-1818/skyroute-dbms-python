@@ -1,17 +1,51 @@
 {% extends "base.html" %}{% set page='search' %}{% block body %}
 <div class="card">
-<p class="mut" style="margin-top:0">{{ dep.airline_name }} · {{ dep.model }}</p>
+<p class="mut" style="margin-top:0">{{ dep.airline_name }} · {{ dep.model or "" }}</p>
 <h2><span class="flight">{{ dep.flight_number }}</span>
 {{ dep.from_airport }} → {{ dep.to_airport }}</h2>
 <p><span class="mono">{{ dep.scheduled_departure }}</span> ·
 <span class="tag gate">{{ dep.gate_number or "gate TBA" }}</span> ·
-{{ dep.capacity - taken|length }} of {{ dep.capacity }} seats free</p>
+{{ (dep.capacity or 180) - (taken|length) }} of {{ dep.capacity or 180 }} seats free</p>
 <h3>Pick your seat</h3>
 <p class="mut">Green pops when you tap it. Grey struck seats are taken — the database
 refuses those, and the page will tell you so if you try.</p>
 <form method="post" id="bookform">
-<select name="passenger_id" style="max-width:340px">{% for p in passengers %}
-<option value="{{ p.passenger_id }}">{{ p.first_name }} {{ p.last_name }} ({{ p.email }})</option>{% endfor %}</select>
+{% if session.get('is_admin') %}
+<div class="acwrap" style="max-width:340px">
+<input id="paxpick" placeholder="Type a name or ID…" autocomplete="off" style="width:100%">
+<input type="hidden" name="passenger_id" id="paxid">
+<div class="aclist" id="paxlist" hidden></div>
+</div>
+<script>
+(function(){
+const PAX={{ pax_list|tojson }};
+const inp=document.getElementById('paxpick'),hid=document.getElementById('paxid'),box=document.getElementById('paxlist');
+function close(){box.hidden=true;box.innerHTML='';}
+function pick(id,label){inp.value=label;hid.value=id;close();}
+inp.addEventListener('input',()=>{
+ const q=inp.value.trim().toLowerCase();hid.value='';
+ if(q.length<1){close();return;}
+  const hits=PAX.filter(p=>p.label.toLowerCase().includes(q)||String(p.id)===q).slice(0,8);
+  if(!hits.length){close();return;}
+  box.innerHTML='';
+  hits.forEach(h=>{const b=document.createElement('button');b.type='button';b.dataset.id=h.id;
+   const i=document.createElement('b');i.textContent=h.id;b.appendChild(i);
+   const s=document.createElement('span');s.textContent=h.label;b.appendChild(s);
+   b.onclick=()=>pick(b.dataset.id,b.textContent.trim());box.appendChild(b);});
+  box.hidden=false;
+});
+inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&!hid.value){const f=box.querySelector('button');if(f){e.preventDefault();f.click();}}});
+document.addEventListener('click',e=>{if(!box.contains(e.target)&&e.target!==inp)close();});
+document.getElementById('bookform').addEventListener('submit',e=>{
+ if(hid.value)return;
+ const ex=PAX.find(p=>String(p.id)===inp.value.trim());
+ if(ex){hid.value=ex.id;return;}
+ e.preventDefault();inp.focus();inp.placeholder='Pick a traveler from the list first';});
+})();
+</script>
+{% elif traveler %}
+<p>Booking as <b>{{ traveler.first_name }} {{ traveler.last_name }}</b> — tickets go to your account only.</p>
+{% endif %}
 <select name="travel_class" style="max-width:200px">
 <option>Economy</option><option>Premium Economy</option>
 <option>Business</option><option>First</option></select>
@@ -29,7 +63,9 @@ refuses those, and the page will tell you so if you try.</p>
 {% if loop.index0 == 3 %}<span class="aisle"></span>{% endif %}
 <button type="button" data-seat="{{ s }}" {% if is_taken %}disabled{% endif %}>{{ s }}</button>
 {% endfor %}{% endfor %}</div>
-<p class="mut">New here? <a href="/passengers">Add yourself as a passenger first.</a></p>
+{% if session.get('is_admin') %}
+<p class="mut">Staff mode: choose any traveler to book for them. The booking won't change your own login.</p>
+{% endif %}
 </div>
 <script>
 const field=document.getElementById('seatfield'),label=document.getElementById('seatlabel');

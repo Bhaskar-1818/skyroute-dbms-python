@@ -11,7 +11,7 @@ Read one answer, close the file, say it out loud in your own words, check.
 - Composite UNIQUEs (terminal+gate) make gate clashes impossible in storage.
 - UNIQUE(departure, seat) kills double booking inside the engine (problem #1).
 - Baggage is weak: PK (booking_id, seq); deleting a booking wipes its bags.
-- Staff is supertype/subtype on the same employee_id — a licence can't dangle.
+- Staff roles share one employee_id across role tables (1-1) — a licence can't dangle.
 - Three least-privilege roles, SHOW GRANTS proof on the exact database name.
 - Defence in depth: UNIQUE stops duplicate seats, the TRIGGER stops overselling.
 - Only workload filters got new indexes; FK columns are auto-indexed already.

@@ -1,4 +1,4 @@
-# SkyRoute: Airline Ticket and Baggage Management System
+# SkyRoute: Airline Booking, Baggage & Staff Operations System
 ### DBMS Mini Project — Database Management System (CS/AI/AIM/DS202)
 Database: skyroute_db | Tables: 16 | MySQL 8.0 (InnoDB, utf8mb4)
 Seed volume: 336 dated departures, ~34,000 bookings, ~42,000 baggage records
@@ -17,8 +17,8 @@ reservations, baggage tracking, payments and check-in. The schema separates
 timetable templates (Flights) from dated departures (Departures) so one
 scheduled flight owns an unlimited number of dated departures; models
 Terminal and Gate infrastructure per airport; and organises staff with a
-supertype/subtype hierarchy (Employee with Pilot, Crew_Member and Ground_Staff
-subtypes). Integrity rules live inside the database rather than in any single
+organises staff in role tables sharing each employee's key (Employees 1-1
+Pilot, Crew_Member and Ground_Staff). Integrity rules live inside the database rather than in any single
 application: a unique seat-per-departure key blocks double booking, a
 before-insert trigger blocks overselling past aircraft capacity, composite
 gate keys block gate clashes, and check constraints block impossible routes
@@ -31,14 +31,16 @@ and four workload-driven indexes, each verified with a before/after EXPLAIN
 pair, keep analytical queries fast at a demonstrated volume of 336 departures
 and roughly thirty-four thousand bookings. Every problem-statement item is closed by
 a named database mechanism, every mechanism carries a test in the validation
-protocol, and the design is carried unchanged into a Flask web application on
-SQLite with full create/read/update/delete coverage.
+protocol, and the design is carried into a Flask staff-portal web application
+on SQLite — traveler login, per-departure manifests, full create/read/update/delete
+coverage — reusing the same integrity rules in application code.
 
 ## Step 1: Title Selection
-SkyRoute: Airline Ticket and Baggage Management System. The title was chosen to
-reflect the real-world problem solved — ticketing and baggage handling for
-scheduled airline operations across multiple airports — rather than a
-single-route shuttle or a generic "airport database". The subtitle carried
+SkyRoute: Airline Booking, Baggage & Staff Operations System. The title was chosen to
+reflect the real-world problem solved — reservations, baggage handling and
+staff operations for scheduled airline operations across multiple airports —
+rather than a single-route shuttle, a generic "airport database", or any
+"Airport Management System" style title. The subtitle carried
 through all deliverables is "one database for every station", which states the
 centralisation objective in a single line.
 
@@ -103,7 +105,8 @@ engines (price is stored per booking; revenue is aggregated, not computed).
 ## Step 5: Entity-Relationship Modeling
 Entities: Airport, Airline, Aircraft, Flight, Departure, Terminal, Gate,
 Passenger, Booking, Baggage (weak entity, double-bordered), Payment, Check_In,
-Employee (supertype) with Pilot, Crew_Member and Ground_Staff subtypes.
+Employees with three role tables (Pilots, Crew_Members, Ground_Staff),
+each 1-1 on the shared employee key.
 Relationships and cardinalities: Airline 1-N Aircraft (a fleet belongs to one
 airline); Flight N-1 Airports in two roles, departure and arrival; Flight 1-N
 Departures (one timetable row owns unlimited dated departures); Airport 1-N
@@ -111,7 +114,7 @@ Terminals 1-N Gates; Passenger 1-N Bookings N-1 Departures (a booking is the
 associative resolution of one passenger and one departure, carrying seat,
 class and price); Booking 1-N Baggage through an identifying relationship (bag
 2 of booking 817 has no meaning without the booking); Booking 1-1 Payment and
-1-1 Check_In; Employee 1-1 each subtype through the shared key (a licence row
+1-1 Check_In; Employees 1-1 each role table through the shared key (a licence row
 cannot exist without its employee row). Keys, cardinality and participation
 were fixed on the diagram before any CREATE TABLE was written, using Chen
 notation: rectangles for entities, diamonds for relationships, ovals for
@@ -139,7 +142,7 @@ and both airports; (flight_id, scheduled_departure) determines one departure;
 (departure_id, seat_number) determines one booking; (booking_id, baggage_seq)
 determines one bag weight; tail_number, licence, email, passport and
 txn_reference each determine their row; employee_id determines the person, with
-role facts in the subtype keyed by the same id.
+role facts in the role tables keyed by the same id.
 Referential discipline: CASCADE where children cannot meaningfully outlive
 parents (bookings, bags, payments of a deleted departure vanish together);
 RESTRICT on airports (deleting an airport must never silently wipe timetable
@@ -167,7 +170,7 @@ at 35 to 80 percent load factors with seats sampled without replacement
 baggage at roughly 1.2 bags per booking with an 80/20 split under and over
 the 20 kg allowance (roughly forty-three thousand bags, giving the fee demo
 a real overweight tail), check-ins on about seventy percent of past
-departures, and eight staff with subtype rows. The generated file is
+departures, and eight staff with role-table rows. The generated file is
 machine-verified before loading: zero duplicate (departure, seat) pairs and
 every foreign key inside its parent range. Scale is a knob, not a rewrite:
 NUM_DAYS, ROUTES and the load-factor band raise volume with no design change.
@@ -190,7 +193,7 @@ against the assigned aircraft's capacity and SIGNALs SQLSTATE 45000 when the
 departure is full, because the rule lives in the database and not in any
 single client. Joins and subqueries: queries/01-joins.sql covers ten join
 patterns across every module (inner joins, multi-table chains, LEFT joins for
-optional bags and check-ins, the double airport role join, supertype/subtype
+optional bags and check-ins, the double airport role join, shared-key role-table
 joins); queries/02-analytics.sql adds GROUP BY with HAVING, CASE aggregates,
 and a correlated subquery (passengers above average spend). The load-factor,
 revenue, gate-utilisation and fee-revenue queries are the ones that only
@@ -271,8 +274,9 @@ Every problem-statement item is closed by a named database mechanism, every
 mechanism has a test with a stated expectation, and the system holds
 production-shaped volume while answering board, manifest, revenue, load,
 utilisation and fee questions in single queries. The Flask web project reuses
-the identical design on SQLite with raw SQL and full CRUD, keeping the same
-integrity rules visible in application code. The build order itself is the
+the identical design on SQLite with raw SQL: a staff portal (PIN-gated
+manifests, check-ins, edits) plus traveler login (unique ID, own bookings
+only), keeping the same integrity rules visible in application code. The build order itself is the
 method: masters before operations, constraints before data, rules before
 applications, measurement before claims.
 

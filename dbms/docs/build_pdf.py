@@ -25,7 +25,7 @@ class Report(FPDF):
         if self.page_no() > 1:
             self.set_font("Helvetica", "I", 9)
             self.set_text_color(*MUT)
-            self.mc(0, 8, "SkyRoute: Airline Ticket and Baggage Management System")
+            self.mc(0, 8, "SkyRoute: Airline Booking, Baggage & Staff Operations System")
 
     def cover(self, title, sub, meta):
         self.set_fill_color(*NAVY)

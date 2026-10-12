@@ -64,10 +64,10 @@ def cover():
     tx.word_wrap = True
     for txt, sz, col, bold in [
             ("SKYROUTE  ✈", 20, AMBER, True),
-            ("Airline Ticket & Baggage System", 44, RGBColor(255, 255, 255), True),
+            ("Airline Booking, Baggage & Staff Operations", 44, RGBColor(255, 255, 255), True),
             ("Multi-airport database · 16 tables · 336 departures · ~34,000 bookings",
              20, RGBColor(207, 227, 247), False),
-            ("Views · trigger · procedure · transactions · indexes · Flask booking site",
+            ("Views · trigger · procedure · transactions · indexes · Flask staff portal",
              20, RGBColor(207, 227, 247), False)]:
         p = tx.add_paragraph() if tx.paragraphs[0].text else tx.paragraphs[0]
         r = p.add_run()
@@ -121,7 +121,7 @@ band(s, "ER model: timetable vs dated reality")
 body(s, [("Masters", "Airport, Airline, Aircraft, Terminal, Gate."),
          ("Flight → Departures", "timetable template owns unlimited dated departures."),
          ("Booking bridge", "passengers meet departures; bags hang off bookings (weak)."),
-         ("Staff", "Employee supertype + Pilot / Crew / Ground subtypes.")])
+         ("Staff", "Employees + three role tables, 1-1 on the shared key.")])
 
 table_slide("Schema: 16 tables, every key earns its place",
             ["Table", "Primary key", "Rule that matters"],
@@ -135,7 +135,7 @@ table_slide("Schema: 16 tables, every key earns its place",
 s = prs.slides.add_slide(blank)
 band(s, "Scale: designed unlimited, demonstrated at volume")
 body(s, [("Design", "integer keys + indexed FKs — nothing changes at 10× volume."),
-         ("Generator", "deterministic (seed 42): 14 days, 35–80% load factors."),
+          ("Generator", "deterministic (seed 42): 21 days, 35–80% load factors."),
          ("Verified", "zero duplicate seats · all foreign keys in range."),
          ("Payoff", "load factor, revenue, gate use — one query each.")])
 
@@ -165,17 +165,17 @@ body(s, [("3 roles", "admin = all · staff = read-write · viewer = read-only, S
          ("Every check", "states its expected result before the run.")])
 
 s = prs.slides.add_slide(blank)
-band(s, "Flask booking site: the database, clickable")
-body(s, [("3 steps", "Search → seat map → My bookings (http://127.0.0.1:5000)."),
-         ("Seat map", "grey seats are the UNIQUE key made visible."),
-         ("CRUD + fee", "edit · cancel · delete · 25 kg bag = Rs 2,500 fee."),
-         ("24 tests", "all passing, no server needed: test_app.py.")])
+band(s, "Flask site: staff portal + traveler login")
+body(s, [("Airplane Management System", "staff portal (PIN) + traveler login (ID), http://127.0.0.1:5000."),
+         ("Manifest", "pick any departure: every passenger, seat, bag, payment."),
+         ("Privacy", "travelers see only their own bookings; staff sees all."),
+         ("28 tests", "all passing, no server needed: test_app.py.")])
 
 s = prs.slides.add_slide(blank)
 band(s, "Result: every problem closed, everything tested")
 body(s, [("Coverage", "all 5 problem items → named mechanisms → tests."),
-         ("Volume", "~14k bookings answered in single queries."),
-         ("Next", "live demo: board → book 12A → re-book 12A (refused) → fee receipt.")])
+         ("Volume", "~34k bookings answered in single queries."),
+         ("Next", "live demo: login → book → re-book (refused) → manifest.")])
 
 prs.save("dbms/docs/SkyRoute_Slides.pptx")
 print("slides written")

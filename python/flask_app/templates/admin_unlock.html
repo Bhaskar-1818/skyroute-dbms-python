@@ -1,10 +1,11 @@
 {% extends "base.html" %}{% set page='admin' %}{% block body %}
 <div class="card" style="text-align:center;padding:48px 24px;max-width:520px;margin:40px auto">
+<p class="eyebrow" style="text-align:center">Staff portal</p>
 <h2>Staff only</h2>
 <p class="mut">The timetable, flight status and passenger deletes belong to airline
 staff — travelers can't reach them. Enter the demo staff PIN.</p>
-<form method="post">
-<input name="pin" placeholder="Staff PIN" required style="max-width:200px;text-align:center">
+<form method="post" class="joingroup">
+<input name="pin" placeholder="Staff PIN" required style="max-width:170px">
 <button>Unlock admin</button></form>
 <p class="mut">Demo PIN: <b class="mono">1234</b> (printed here because this is a
 classroom demo; a real system uses staff logins.)</p>

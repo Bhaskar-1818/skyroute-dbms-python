@@ -19,7 +19,7 @@ SCHEMA_TABLE = (
      ["Bookings", "booking_id", "UNIQUE(departure, seat)"],
      ["Baggage", "(booking, seq)", "weak entity; 0 < kg <= 100"],
      ["Payments / Check-Ins", "own ids", "UNIQUE booking (one-to-one)"],
-     ["Employees + subtypes", "employee_id", "subtype PK = supertype PK"]],
+     ["Employees + role tables", "employee_id", "role PK = employee PK"]],
 )
 
 

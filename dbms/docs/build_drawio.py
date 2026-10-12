@@ -1,6 +1,7 @@
-"""Builds dbms/docs/SkyRoute_ER.drawio - layered ER diagram (draw.io).
-Open in diagrams.net / draw.io desktop -> File -> Export as -> PNG/PDF.
-Run from repo root:  python dbms/docs/build_drawio.py"""
+"""SUPERSEDED by build_chen.py — kept as history. Do not run: its output path
+collides with the canonical SkyRoute_ER.drawio. If ever revived, retarget
+the save below to SkyRoute_ER_layered.drawio first.
+Legacy builder: layered-boxes ER diagram (draw.io)."""
 import xml.etree.ElementTree as ET
 
 cells, nid = [], 2
@@ -94,6 +95,6 @@ for c in cells:
     root.append(c)
 
 ET.indent(mxfile)
-with open("dbms/docs/SkyRoute_ER.drawio", "w", encoding="utf-8") as f:
+with open("dbms/docs/SkyRoute_ER_layered.drawio", "w", encoding="utf-8") as f:
     f.write('<?xml version="1.0" encoding="UTF-8"?>\n' + ET.tostring(mxfile, encoding="unicode"))
 print("drawio written")

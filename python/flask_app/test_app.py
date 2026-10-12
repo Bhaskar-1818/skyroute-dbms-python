@@ -26,21 +26,39 @@ print("privacy gate (no identity, no tickets) ok")
 r = c.get("/")
 assert r.status_code == 200 and b"SkyRoute" in r.data, "home failed"
 
-r = c.post("/", data={"dep": "HYD", "arr": "BLR", "day": "2026-11-03"})
+r = c.post("/", data={"route": "HYD-BLR", "day": "2026-11-03"})
 assert r.status_code == 200 and b"6E-501" in r.data, "search failed"
 print("search HYD->BLR ok")
 
-r = c.post("/", data={"dep": "MAA", "arr": "HYD", "day": "2026-11-03"})
+r = c.post("/", data={"route": "MAA-HYD", "day": "2026-11-03"})
 assert r.status_code == 200 and b"6E-561" in r.data, "MAA chip search failed"
 print("search MAA->HYD ok")
 
-r = c.post("/", data={"arr": "BLR", "day": "2026-11-03"})
+r = c.post("/", data={"route": "MAA-HYD", "day": "2026-11-02"})
+assert r.status_code == 200 and b"No departures" in r.data, "sparse timetable broken"
+print("sparse timetable (empty date) ok")
+
+r = c.post("/", data={"day": "2026-11-03"})
 assert r.status_code == 200 and b"Choose a departure" in r.data, "missing-field guard failed"
 print("missing-field guard ok")
 
-r = c.post("/", data={"dep": "HYD", "arr": "HYD", "day": "2026-11-03"})
+r = c.post("/", data={"route": "HYD-HYD", "day": "2026-11-03"})
 assert b"must differ" in r.data, "same-airport guard failed"
 print("same-airport refusal ok")
+
+r = c.get("/manifest/1")
+assert r.status_code == 302, "guest manifest not redirected"
+r = c2.get("/manifest/1", follow_redirects=True)
+assert b"Staff only" in r.data, "manifest not staff-gated"
+print("manifest staff gate ok")
+
+r = c.get("/book/1")
+assert r.status_code == 302 and "/login" in r.headers.get("Location", ""), "guest booking not sent to login"
+print("booking login wall ok")
+
+r = c.post("/login", data={"passenger_id": "1", "password": "fly123"}, follow_redirects=True)
+assert b"Welcome" in r.data, "login failed"
+print("login ok")
 
 r = c.get("/book/1")
 assert r.status_code == 200 and b"Pick your seat" in r.data, "seat map page failed"
@@ -63,7 +81,8 @@ r = c.post("/book/1", data={"passenger_id": "2", "seat": seat_a,
 assert r.status_code == 200 and b"already taken" in r.data, "double-booking guard failed"
 print("double-booking refused ok")
 
-bid = db.execute("SELECT booking_id FROM Bookings WHERE seat_number = ?",
+bid = db.execute("SELECT booking_id FROM Bookings WHERE departure_id = 1 "
+                 "AND seat_number = ? ORDER BY booking_id DESC",
                  (seat_a,)).fetchone()[0]
 
 seat_b = free_seat(1, skip=[seat_a])

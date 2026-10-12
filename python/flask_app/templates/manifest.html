@@ -1,0 +1,42 @@
+{% extends "base.html" %}{% set page='search' %}{% block body %}
+<div class="card">
+<p class="mut">Staff manifest · departure {{ dep.departure_id }} · {{ dep.flight_number }} · {{ dep.airline_name }}</p>
+<h2>{{ dep.from_airport }} → {{ dep.to_airport }}</h2>
+<div class="route">
+<span><span class="ap">{{ dep.from_airport }}</span><br><span class="tm">{{ dep.from_city }} · {{ dep.scheduled_departure[11:16] }}</span></span>
+<span class="line"></span>
+<span style="text-align:right"><span class="ap">{{ dep.to_airport }}</span><br><span class="tm">{{ dep.to_city }} · {{ dep.scheduled_arrival[11:16] }}</span></span>
+</div>
+<p class="mut">{{ dep.scheduled_departure[:10] }} · {{ dep.model or "Aircraft" }} · Gate <b>{{ dep.gate_number or "—" }}</b> · <span class="tag {{ 'ok' if dep.departure_status=='Scheduled' else 'dim' }}">{{ dep.departure_status }}</span></p>
+<p>
+<span class="tag dark">{{ stats.sold }}/{{ stats.capacity }} seats · {{ stats.load }}%</span>
+<span class="tag ok">{{ stats.checked }} checked in</span>
+<span class="tag warn">{{ stats.bags }} bags</span>
+<span class="tag gate">Rs {{ '%g' % stats.revenue }} revenue</span>
+</p>
+<div class="bagbar{% if stats.load >= 90 %} over{% endif %}"><i style="width:{{ stats.load }}%"></i></div>
+</div>
+<div class="card">
+<h2>{{ rows|length }} passengers on this departure</h2>
+<p class="mut">Everyone the staff sees for this flight — seat, class, bags, money, boarding. Actions apply instantly.</p>
+<table><tr><th>Seat</th><th>Passenger</th><th>Class</th><th>Bags</th><th>Payment</th><th>Status</th><th>Staff actions</th></tr>
+{% for r in rows %}<tr>
+<td><span class="flight">{{ r.seat_number }}</span><br><span class="mut mono">SR-{{ 1000 + r.booking_id }}</span></td>
+<td><b>{{ r.first_name }} {{ r.last_name }}</b><br><span class="mut">Rs {{ '%g' % r.price }}</span></td>
+<td>{{ r.travel_class }}</td>
+<td class="mono">{{ r.bags }} bag{{ 's' if r.bags != 1 else '' }}{% if r.bags %} · {{ '%g' % r.bag_kg }} kg{% endif %}{% if r.fee %}<br><span class="tag bad">fee Rs {{ '%g' % r.fee }}</span>{% endif %}</td>
+<td><span class="tag {{ 'dark' if r.pay_status=='Paid' else 'warn' }}">{{ r.pay_status }}</span></td>
+<td><span class="tag {{ 'ok' if r.booking_status=='Confirmed' else 'dim' }}">{{ r.booking_status }}</span>
+{% if r.boarding %}<br><span class="tag ok">{{ r.boarding }}</span>{% endif %}</td>
+<td>{% if session.get('is_admin') %}<div class="actions">
+<form class="inline" action="/checkin/{{ r.booking_id }}" method="post"><input type="hidden" name="next" value="/manifest/{{ dep.departure_id }}"><button class="ghost small">Check in</button></form>
+<form class="inline" action="/payment/{{ r.booking_id }}/pay" method="post"><input type="hidden" name="next" value="/manifest/{{ dep.departure_id }}"><button class="ghost small">Paid</button></form>
+<form class="inline" action="/baggage/{{ r.booking_id }}" method="post"><input type="hidden" name="next" value="/manifest/{{ dep.departure_id }}"><input name="weight" placeholder="kg" required style="width:64px"><button class="ghost small">+ Bag</button></form>
+<form class="inline" action="/bookings/{{ r.booking_id }}/cancel" method="post"><input type="hidden" name="next" value="/manifest/{{ dep.departure_id }}"><button class="ghost small">Cancel</button></form>
+<form class="inline" action="/bookings/{{ r.booking_id }}/delete" method="post" onsubmit="return confirm(this.getAttribute('data-msg'))" data-msg="Remove booking SR-{{ 1000 + r.booking_id }} from this flight?"><input type="hidden" name="next" value="/manifest/{{ dep.departure_id }}"><button class="danger small">Offload</button></form>
+</div>{% else %}<span class="mut">Staff only — <a href="/admin">unlock Staff</a> to manage.</span>{% endif %}</td></tr>
+{% else %}<tr><td colspan="7" class="mut">No passengers on this departure yet. Add one from the booking page.</td></tr>
+{% endfor %}</table>
+<p><a class="btn ghost" href="/book/{{ dep.departure_id }}">+ Add passenger to this flight</a>
+<a class="btn ghost" href="/">← All flights</a></p>
+</div>{% endblock %}

@@ -1,4 +1,4 @@
-# SkyRoute — Airline Ticket & Baggage System
+# SkyRoute — Airline Booking, Baggage & Staff Operations System
 
 Two projects, one airline design, separate folders:
 

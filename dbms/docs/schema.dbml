@@ -1,6 +1,5 @@
-// SkyRoute schema.dbml — paste at dbdiagram.io (free) → Export PNG/PDF.
-// Option B for the ER diagram. Option A (recommended): MySQL Workbench →
-// Database → Reverse Engineer from your live skyroute_db → EER + export.
+// SkyRoute schema.dbml (v2) — paste at dbdiagram.io (free) → Export PNG/PDF.
+// v2: Flight_Instances renamed Departures; Runways and Crew_Assignments removed.
 
 Table Airports {
   airport_id int [pk, increment]
@@ -41,6 +40,7 @@ Table Terminals {
   airport_id int [not null]
   terminal_code varchar(4) [not null]
   terminal_name varchar(100) [not null]
+  terminal_status varchar(20) [default: 'Operational']
 }
 
 Table Gates {
@@ -50,24 +50,16 @@ Table Gates {
   gate_status varchar(20) [default: 'Open']
 }
 
-Table Runways {
-  runway_id int [pk, increment]
-  airport_id int [not null]
-  runway_code varchar(10) [not null]
-  length_metre decimal(7,2) [not null]
-}
-
-Table Flight_Instances {
-  instance_id int [pk, increment]
+Table Departures {
+  departure_id int [pk, increment]
   flight_id int [not null]
   scheduled_departure datetime [not null]
   scheduled_arrival datetime [not null]
   actual_departure datetime
   actual_arrival datetime
-  instance_status varchar(20) [default: 'Scheduled']
+  departure_status varchar(20) [default: 'Scheduled']
   aircraft_id int
   gate_id int
-  runway_id int
 }
 
 Table Passengers {
@@ -83,13 +75,13 @@ Table Passengers {
 Table Bookings {
   booking_id int [pk, increment]
   passenger_id int [not null]
-  instance_id int [not null]
+  departure_id int [not null]
   seat_number varchar(5) [not null]
   travel_class varchar(20) [default: 'Economy']
   price decimal(10,2) [not null]
   booking_status varchar(20) [default: 'Confirmed']
   booked_at datetime
-  indexes { (instance_id, seat_number) [unique] }
+  indexes { (departure_id, seat_number) [unique] }
 }
 
 Table Baggage {
@@ -141,26 +133,17 @@ Table Ground_Staff {
   airport_id int
 }
 
-Table Crew_Assignments {
-  assignment_id int [pk, increment]
-  employee_id int [not null]
-  instance_id int [not null]
-  role_on_flight varchar(40) [not null]
-}
-
 Ref: Aircraft.airline_id > Airlines.airline_id
 Ref: Flights.airline_id > Airlines.airline_id
 Ref: Flights.departure_airport_id > Airports.airport_id
 Ref: Flights.arrival_airport_id > Airports.airport_id
 Ref: Terminals.airport_id > Airports.airport_id
 Ref: Gates.terminal_id > Terminals.terminal_id
-Ref: Runways.airport_id > Airports.airport_id
-Ref: Flight_Instances.flight_id > Flights.flight_id
-Ref: Flight_Instances.aircraft_id > Aircraft.aircraft_id
-Ref: Flight_Instances.gate_id > Gates.gate_id
-Ref: Flight_Instances.runway_id > Runways.runway_id
+Ref: Departures.flight_id > Flights.flight_id
+Ref: Departures.aircraft_id > Aircraft.aircraft_id
+Ref: Departures.gate_id > Gates.gate_id
 Ref: Bookings.passenger_id > Passengers.passenger_id
-Ref: Bookings.instance_id > Flight_Instances.instance_id
+Ref: Bookings.departure_id > Departures.departure_id
 Ref: Baggage.booking_id > Bookings.booking_id
 Ref: Payments.booking_id > Bookings.booking_id
 Ref: Check_Ins.booking_id > Bookings.booking_id
@@ -169,5 +152,3 @@ Ref: Pilots.employee_id > Employees.employee_id
 Ref: Crew_Members.employee_id > Employees.employee_id
 Ref: Ground_Staff.employee_id > Employees.employee_id
 Ref: Ground_Staff.airport_id > Airports.airport_id
-Ref: Crew_Assignments.employee_id > Employees.employee_id
-Ref: Crew_Assignments.instance_id > Flight_Instances.instance_id
