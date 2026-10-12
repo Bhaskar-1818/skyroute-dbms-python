@@ -1,17 +1,20 @@
-"""SkyRoute booking site - Flask + stdlib sqlite3 (no ORM).
+"""SkyRoute booking site - Flask + MySQL via mysql-connector-python (no ORM).
 A customer books a real ticket in 3 steps: 1 Search, 2 Choose seat, 3 My bookings.
 Every database call is visible SQL, so the app doubles as executable revision.
 
-Run (from repo root):  python python/flask_app/seed_sqlite.py  (builds demo DB once)
-                       python python/flask_app/app.py            (serves http://127.0.0.1:5000)
+Run (from repo root):  python python/flask_app/seed_mysql.py        (builds skyroute_app once)
+                       python python/flask_app/app.py                 (serves http://127.0.0.1:5000)
+Needs MySQL running + python/flask_app/.env credentials.
+(SQLite skyroute.db via seed_sqlite.py stays as the offline fallback.)
 """
 import re
-import sqlite3
 from datetime import date, timedelta
 from functools import wraps
 from pathlib import Path
 
 from flask import Flask, flash, g, redirect, render_template, request, session, url_for
+
+from db import Conn, IntegrityError, connect
 
 ROOT = Path(__file__).resolve().parent
 DB = ROOT / "skyroute.db"
@@ -30,10 +33,9 @@ app.secret_key = "skyroute-demo-key"  # flash messages only; demo app
 
 
 def get_db():
+    """One MySQL connection per request (skyroute_app via db.py)."""
     if "db" not in g:
-        g.db = sqlite3.connect(DB)
-        g.db.row_factory = sqlite3.Row
-        g.db.execute("PRAGMA foreign_keys = ON")
+        g.db = Conn(connect())
     return g.db
 
 
@@ -51,7 +53,7 @@ def traveler():
     pid = session.get("pax_id")
     if pid:
         me = get_db().execute(
-            "SELECT first_name, last_name FROM Passengers WHERE passenger_id = ?",
+            "SELECT first_name, last_name FROM Passengers WHERE passenger_id = %s",
             (pid,)).fetchone()
     return {"traveler": me}
 
@@ -64,7 +66,7 @@ def owns(bid):
     pid = session.get("pax_id")
     if not pid:
         return False
-    r = get_db().execute("SELECT passenger_id FROM Bookings WHERE booking_id = ?",
+    r = get_db().execute("SELECT passenger_id FROM Bookings WHERE booking_id = %s",
                          (bid,)).fetchone()
     return bool(r and r["passenger_id"] == pid)
 
@@ -157,8 +159,8 @@ def index():
                    JOIN Airports arr ON f.arrival_airport_id = arr.airport_id
                    LEFT JOIN Aircraft ac ON d.aircraft_id = ac.aircraft_id
                    LEFT JOIN Gates g ON d.gate_id = g.gate_id
-                   WHERE dep.iata_code = ? AND arr.iata_code = ?
-                     AND date(d.scheduled_departure) = ?
+                    WHERE dep.iata_code = %s AND arr.iata_code = %s
+                      AND date(d.scheduled_departure) = %s
                    ORDER BY d.scheduled_departure""",
                 (dep, arr, day)).fetchall()
             if not results:
@@ -181,7 +183,7 @@ def book(departure_id):
             JOIN Airports arr_a ON f.arrival_airport_id = arr_a.airport_id
             LEFT JOIN Aircraft ac ON d.aircraft_id = ac.aircraft_id
             LEFT JOIN Gates g ON d.gate_id = g.gate_id
-            WHERE d.departure_id = ?""",
+            WHERE d.departure_id = %s""",
         (departure_id,)).fetchone()
     if dep is None:
         return "Unknown departure", 404
@@ -192,7 +194,7 @@ def book(departure_id):
         flash("Log in first — bookings belong to travelers.", "error")
         return redirect(url_for("login"))
     taken = {r["seat_number"] for r in
-             db.execute("SELECT seat_number FROM Bookings WHERE departure_id = ? "
+             db.execute("SELECT seat_number FROM Bookings WHERE departure_id = %s "
                         "AND booking_status != 'Cancelled'",
                         (departure_id,))}
     passengers = db.execute(
@@ -212,7 +214,7 @@ def book(departure_id):
         cap = dep["capacity"] or 180
         seat_ok = seat in valid_seats(cap)
         pax_ok = pid and pid.isdigit() and db.execute(
-            "SELECT 1 FROM Passengers WHERE passenger_id = ?", (int(pid),)).fetchone()
+            "SELECT 1 FROM Passengers WHERE passenger_id = %s", (int(pid),)).fetchone()
         if not pax_ok:
             flash("Pick a traveler from the list first.", "error")
         elif not seat_ok:
@@ -232,19 +234,19 @@ def book(departure_id):
                     # until it is cleared, so clear it first — the seat is
                     # genuinely free again and its stale payment/bags/check-in
                     # vanish with it via ON DELETE CASCADE.
-                    db.execute("DELETE FROM Bookings WHERE departure_id = ? "
-                               "AND seat_number = ? AND booking_status = 'Cancelled'",
+                    db.execute("DELETE FROM Bookings WHERE departure_id = %s "
+                               "AND seat_number = %s AND booking_status = 'Cancelled'",
                                (departure_id, seat))
                     cur = db.execute(
                         "INSERT INTO Bookings (passenger_id, departure_id, seat_number, travel_class, price) "
-                        "VALUES (?, ?, ?, ?, ?)",
+                        "VALUES (%s, %s, %s, %s, %s)",
                         (int(pid), departure_id, seat, tclass, price))
                     bid = cur.lastrowid
                     db.execute(
                         "INSERT INTO Payments (booking_id, amount, pay_method, pay_status, txn_reference) "
-                        "VALUES (?, ?, 'UPI', 'Pending', ?)",
+                        "VALUES (%s, %s, 'UPI', 'Pending', %s)",
                         (bid, price, f"TXNAPP{100000 + bid}"))
-            except sqlite3.IntegrityError:
+            except IntegrityError:
                 # Only reachable through a true race now: inputs above are valid,
                 # so a constraint failure here means the seat just got taken.
                 flash(f"Seat {seat} was just taken by someone else. Pick a green seat.", "error")
@@ -300,7 +302,7 @@ def bookings():
                                me=None, pax_id=None, gated=True, trav_list=[])
     where, args = "", []
     if pax_id:
-        where, args = "WHERE b.passenger_id = ?", [pax_id]
+        where, args = "WHERE b.passenger_id = %s", [pax_id]
     rows = db.execute(
         f"""SELECT b.*, p.first_name, p.last_name, f.flight_number, d.scheduled_departure,
                   d.scheduled_arrival, dep.iata_code AS from_airport, arr.iata_code AS to_airport,
@@ -308,8 +310,8 @@ def bookings():
                   (SELECT COUNT(*) FROM Baggage WHERE booking_id = b.booking_id) AS bags,
                   COALESCE((SELECT SUM(weight_kg) FROM Baggage
                             WHERE booking_id = b.booking_id), 0) AS bag_kg,
-                  COALESCE((SELECT ROUND(SUM(MAX(weight_kg - 20, 0)) * 500, 2) FROM Baggage
-                            WHERE booking_id = b.booking_id), 0) AS fee,
+                   COALESCE((SELECT ROUND(SUM(GREATEST(weight_kg - 20, 0)) * 500, 2) FROM Baggage
+                             WHERE booking_id = b.booking_id), 0) AS fee,
                   (SELECT boarding_status FROM Check_Ins WHERE booking_id = b.booking_id) AS boarding
            FROM Bookings b
            JOIN Passengers p ON b.passenger_id = p.passenger_id
@@ -325,7 +327,7 @@ def bookings():
         "SELECT passenger_id, first_name, last_name FROM Passengers ORDER BY passenger_id LIMIT 120").fetchall()
     me = None
     if pax_id:
-        me = db.execute("SELECT first_name, last_name FROM Passengers WHERE passenger_id = ?",
+        me = db.execute("SELECT first_name, last_name FROM Passengers WHERE passenger_id = %s",
                         (pax_id,)).fetchone()
     trav_list = []
     if session.get("is_admin"):
@@ -358,7 +360,7 @@ def login():
         if pid.isdigit() and int(pid) > 0:
             me = get_db().execute(
                 "SELECT passenger_id, first_name, last_name FROM Passengers "
-                "WHERE passenger_id = ?", (int(pid),)).fetchone()
+                "WHERE passenger_id = %s", (int(pid),)).fetchone()
         if me is None:
             flash("No traveler with that ID. Find your ID on the Passengers page.", "error")
         elif pw != CUSTOMER_PASSWORD:
@@ -410,7 +412,7 @@ def manifest(departure_id):
            JOIN Airports arr_a ON f.arrival_airport_id = arr_a.airport_id
            LEFT JOIN Aircraft ac ON d.aircraft_id = ac.aircraft_id
            LEFT JOIN Gates g ON d.gate_id = g.gate_id
-           WHERE d.departure_id = ?""",
+            WHERE d.departure_id = %s""",
         (departure_id,)).fetchone()
     if dep is None:
         return "Unknown departure", 404
@@ -424,13 +426,13 @@ def manifest(departure_id):
                     WHERE booking_id = b.booking_id) AS bags,
                   COALESCE((SELECT SUM(weight_kg) FROM Baggage
                             WHERE booking_id = b.booking_id), 0) AS bag_kg,
-                  COALESCE((SELECT ROUND(SUM(MAX(weight_kg - 20, 0)) * 500, 2)
-                            FROM Baggage WHERE booking_id = b.booking_id), 0) AS fee
-           FROM Bookings b
-           JOIN Passengers p ON b.passenger_id = p.passenger_id
-           LEFT JOIN Payments pay ON b.booking_id = pay.booking_id
-           WHERE b.departure_id = ?
-           ORDER BY b.seat_number""",
+                   COALESCE((SELECT ROUND(SUM(GREATEST(weight_kg - 20, 0)) * 500, 2)
+                             FROM Baggage WHERE booking_id = b.booking_id), 0) AS fee
+            FROM Bookings b
+            JOIN Passengers p ON b.passenger_id = p.passenger_id
+            LEFT JOIN Payments pay ON b.booking_id = pay.booking_id
+            WHERE b.departure_id = %s
+            ORDER BY b.seat_number""",
         (departure_id,)).fetchall()
     cap = dep["capacity"] or 180
     sold = dep["sold"] or 0
@@ -454,7 +456,7 @@ def booking_edit(bid):
         """SELECT b.departure_id, ac.capacity FROM Bookings b
            JOIN Departures d ON b.departure_id = d.departure_id
            LEFT JOIN Aircraft ac ON d.aircraft_id = ac.aircraft_id
-           WHERE b.booking_id = ?""", (bid,)).fetchone()
+           WHERE b.booking_id = %s""", (bid,)).fetchone()
     if dep is None:
         return "Unknown booking", 404
     seat = (request.form.get("seat") or "").strip().upper()
@@ -465,8 +467,8 @@ def booking_edit(bid):
     except ValueError:
         price_ok = False
     clash = db.execute(
-        "SELECT 1 FROM Bookings WHERE departure_id = ? AND seat_number = ? "
-        "AND booking_id != ? AND booking_status != 'Cancelled'",
+        "SELECT 1 FROM Bookings WHERE departure_id = %s AND seat_number = %s "
+        "AND booking_id != %s AND booking_status != 'Cancelled'",
         (dep["departure_id"], seat, bid)).fetchone()
     if seat not in valid_seats(dep["capacity"]):
         flash(f"Seat {seat or '?'} doesn't exist on this plane.", "error")
@@ -479,10 +481,10 @@ def booking_edit(bid):
     else:
         try:
             with db:
-                db.execute("UPDATE Bookings SET seat_number = ?, travel_class = ?, price = ? "
-                           "WHERE booking_id = ?",
+                db.execute("UPDATE Bookings SET seat_number = %s, travel_class = %s, price = %s "
+                           "WHERE booking_id = %s",
                            (seat, tclass, price, bid))
-        except sqlite3.IntegrityError:
+        except IntegrityError:
             flash(f"Seat {seat} is taken. Nothing was changed.", "error")
         else:
             flash(f"Booking {bid} updated to seat {seat}.", "ok")
@@ -495,7 +497,7 @@ def booking_cancel(bid):
         return refuse()
     db = get_db()
     with db:
-        db.execute("UPDATE Bookings SET booking_status = 'Cancelled' WHERE booking_id = ?", (bid,))
+        db.execute("UPDATE Bookings SET booking_status = 'Cancelled' WHERE booking_id = %s", (bid,))
     flash(f"Booking {bid} cancelled. The seat is free again.", "ok")
     return go_next(url_for("bookings"))
 
@@ -506,7 +508,7 @@ def booking_delete(bid):
         return refuse()
     db = get_db()
     with db:  # bags, payment, check-in vanish via ON DELETE CASCADE
-        db.execute("DELETE FROM Bookings WHERE booking_id = ?", (bid,))
+        db.execute("DELETE FROM Bookings WHERE booking_id = %s", (bid,))
     flash(f"Booking {bid} deleted with its bags, payment and check-in.", "ok")
     return go_next(url_for("bookings"))
 
@@ -523,12 +525,12 @@ def passengers():
         try:
             with db:
                 cur = db.execute("INSERT INTO Passengers (first_name, last_name, passport_number, phone, email) "
-                           "VALUES (?, ?, ?, ?, ?)",
+                           "VALUES (%s, %s, %s, %s, %s)",
                            (request.form["first_name"], request.form["last_name"],
                             request.form["passport_number"] or None,
                             request.form["phone"], request.form["email"]))
                 pid = cur.lastrowid
-        except sqlite3.IntegrityError:
+        except IntegrityError:
             flash("That passport number or email is already registered.", "error")
         else:
             flash(f"Registered! Your traveler ID is {pid} — log in with it + demo password fly123.", "ok")
@@ -541,7 +543,7 @@ def passengers():
 def passenger_delete(pid):
     db = get_db()
     with db:
-        db.execute("DELETE FROM Passengers WHERE passenger_id = ?", (pid,))
+        db.execute("DELETE FROM Passengers WHERE passenger_id = %s", (pid,))
     flash("Passenger deleted with all their bookings.", "ok")
     return redirect(url_for("passengers"))
 
@@ -553,15 +555,15 @@ def passenger_edit(pid):
     db = get_db()
     try:
         with db:
-            db.execute("UPDATE Passengers SET first_name = ?, last_name = ?, "
-                       "passport_number = ?, phone = ?, email = ? "
-                       "WHERE passenger_id = ?",
+            db.execute("UPDATE Passengers SET first_name = %s, last_name = %s, "
+                       "passport_number = %s, phone = %s, email = %s "
+                       "WHERE passenger_id = %s",
                        (request.form["first_name"].strip(),
                         request.form["last_name"].strip(),
                         request.form.get("passport_number", "").strip() or None,
                         request.form["phone"].strip(),
                         request.form["email"].strip(), pid))
-    except sqlite3.IntegrityError:
+    except IntegrityError:
         flash("That passport number or email belongs to someone else. Nothing changed.", "error")
     else:
         flash(f"Passenger {pid} updated.", "ok")
@@ -583,9 +585,9 @@ def baggage_add(bid):
         flash("Bags must weigh between 0 and 100 kg.", "error")
         return go_next(url_for("bookings"))
     with db:
-        seq = db.execute("SELECT COALESCE(MAX(baggage_seq), 0) + 1 FROM Baggage WHERE booking_id = ?",
-                         (bid,)).fetchone()[0]
-        db.execute("INSERT INTO Baggage (booking_id, baggage_seq, weight_kg) VALUES (?, ?, ?)",
+        seq = db.execute("SELECT COALESCE(MAX(baggage_seq), 0) + 1 AS n FROM Baggage WHERE booking_id = %s",
+                         (bid,)).fetchone()["n"]
+        db.execute("INSERT INTO Baggage (booking_id, baggage_seq, weight_kg) VALUES (%s, %s, %s)",
                    (bid, seq, weight))
     extra = max(weight - FREE_KG, 0) * FEE_PER_KG
     if extra:
@@ -601,8 +603,8 @@ def payment_pay(bid):
         return refuse()
     db = get_db()
     with db:
-        db.execute("UPDATE Payments SET pay_status = 'Paid', paid_at = datetime('now') "
-                   "WHERE booking_id = ?", (bid,))
+        db.execute("UPDATE Payments SET pay_status = 'Paid', paid_at = NOW() "
+                   "WHERE booking_id = %s", (bid,))
     flash(f"Payment for booking {bid} marked Paid.", "ok")
     return go_next(url_for("bookings"))
 
@@ -613,7 +615,7 @@ def checkin(bid):
         return refuse()
     db = get_db()
     with db:
-        db.execute("INSERT OR IGNORE INTO Check_Ins (booking_id, boarding_status) VALUES (?, 'Boarded')",
+        db.execute("INSERT IGNORE INTO Check_Ins (booking_id, boarding_status) VALUES (%s, 'Boarded')",
                    (bid,))
     flash(f"Booking {bid} checked in. Boarding pass ready.", "ok")
     return go_next(url_for("bookings"))
@@ -643,7 +645,7 @@ def admin():
             try:
                 with db:
                     cur = db.execute("INSERT INTO Flights (flight_number, airline_id, departure_airport_id, "
-                               "arrival_airport_id, sched_departure, sched_arrival) VALUES (?, ?, ?, ?, ?, ?)",
+                               "arrival_airport_id, sched_departure, sched_arrival) VALUES (%s, %s, %s, %s, %s, %s)",
                                (fno, request.form["airline_id"],
                                 dep, arr, request.form["dep_t"], request.form["arr_t"]))
                     # A timetable flight with no dated departures is invisible in
@@ -652,14 +654,14 @@ def admin():
                     for n in range(7):
                         d = date(2026, 11, 8) + timedelta(days=n)
                         db.execute("INSERT INTO Departures (flight_id, scheduled_departure, scheduled_arrival) "
-                                   "VALUES (?, ?, ?)",
+                                   "VALUES (%s, %s, %s)",
                                    (fid, f"{d} {dt}", f"{d} {at}"))
-            except sqlite3.IntegrityError:
+            except IntegrityError:
                 flash(f"Flight {fno} already exists. Flight numbers are unique.", "error")
             else:
                 flash(f"Flight {fno} added with 7 dated departures.", "ok")
         return redirect(url_for("admin"))
-    counts = {t: db.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
+    counts = {t: db.execute(f"SELECT COUNT(*) AS n FROM {t}").fetchone()["n"]
               for t in ("Flights", "Departures", "Passengers", "Bookings",
                         "Baggage", "Payments", "Check_Ins")}
     flights = db.execute(
@@ -692,7 +694,7 @@ def flight_toggle(fid):
     with db:
         db.execute("UPDATE Flights SET flight_status = "
                    "CASE WHEN flight_status = 'Active' THEN 'Suspended' ELSE 'Active' END "
-                   "WHERE flight_id = ?", (fid,))
+                    "WHERE flight_id = %s", (fid,))
     return redirect(url_for("admin"))
 
 
@@ -701,13 +703,13 @@ def flight_toggle(fid):
 def flight_delete(fid):
     """Staff Delete: remove a timetable flight with no dated departures."""
     db = get_db()
-    n = db.execute("SELECT COUNT(*) FROM Departures WHERE flight_id = ?",
-                   (fid,)).fetchone()[0]
+    n = db.execute("SELECT COUNT(*) AS n FROM Departures WHERE flight_id = %s",
+                   (fid,)).fetchone()["n"]
     if n:
         flash(f"Flight has {n} dated departure(s). Suspend it instead of deleting.", "error")
         return redirect(url_for("admin"))
     with db:
-        db.execute("DELETE FROM Flights WHERE flight_id = ?", (fid,))
+        db.execute("DELETE FROM Flights WHERE flight_id = %s", (fid,))
     flash("Flight deleted.", "ok")
     return redirect(url_for("admin"))
 

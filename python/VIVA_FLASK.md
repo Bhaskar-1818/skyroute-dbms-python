@@ -1,9 +1,12 @@
 # Flask viva notes (ES202) — learn with this open, then without it
 
 ## Q&A
-1. Why Flask, why sqlite3, why no ORM?
-   Approved stack; sqlite3 is stdlib and every query stays visible SQL, which
-   is the point while learning. SQLAlchemy would hide exactly what I need to show.
+1. Why Flask, why mysql-connector-python, why no ORM?
+    Approved stack; the connector is the Module-4 requirement — every
+    insert/update/delete in the site lands in the MySQL server, which is
+    exactly what the evaluation checks (open Workbench and watch the rows
+    change). No ORM because every query stays visible SQL, which is the
+    point while learning. SQLAlchemy would hide exactly what I need to show.
 2. CRUD mapping? Create: book seat (+auto payment), register traveler, add
    flight, add bag. Read: route search, manifest, own bookings with receipt +
    fee, staff counts. Update: edit seat/class/price, edit traveler, cancel,
@@ -14,12 +17,20 @@
    pre-check is politeness, the key is correctness.
 4. Fee rule location? One constant pair FREE_KG/FEE_PER_KG in app.py, mirrored
    from booking_receipt_view in MySQL. 25 kg → Rs 2,500.
-5. Booking + payment atomicity? `with db:` block inserts both; any failure rolls
-   back both. Same idea as MakeBooking, in application code.
-6. MySQL vs SQLite differences met? ENUM → TEXT+CHECK, AUTO_INCREMENT →
-   INTEGER PRIMARY KEY AUTOINCREMENT, DATETIME → sortable TEXT.
-7. How was it tested? test_app.py: 28 checks via Flask test client, no server
-   needed — privacy gate, route search, empty-date search, guards, manifest
+5. Booking + payment atomicity? One MySQL transaction inserts both (see
+    db.py transaction()); any failure rolls back both. Same idea as
+    MakeBooking, in application code — and the seat can't double-sell
+    because UNIQUE(departure_id, seat_number) lives in the server.
+6. Placeholders and rows under the connector? `%s` instead of `?`
+    (connector style), dict cursors so `r["seat_number"]` reads the same,
+    `lastrowid` and commit/rollback like before. MySQL returns DATETIME
+    objects, so db.py converts them to 'YYYY-MM-DD HH:MM:SS' strings —
+    templates slice them exactly as with SQLite. Scalar MySQL differences
+    met: `INSERT IGNORE` instead of `INSERT OR IGNORE`, `NOW()` instead of
+    `datetime('now')`, `GREATEST()` instead of two-argument `MAX()`.
+7. How was it tested? test_app.py reseeds a throwaway `skyroute_test`
+    database, then runs 28 checks via Flask test client, no server
+    needed — privacy gate, route search, empty-date search, guards, manifest
    staff gate, booking login wall, login and logout, seat map, create, refusal
    guards, edit, fee math, pay, check-in, cancel, cascade delete, staff-gated
    deletes and edits, admin PIN, travel-as filter, admin view, cross-user refusal.

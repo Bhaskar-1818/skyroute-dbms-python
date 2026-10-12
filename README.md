@@ -5,7 +5,8 @@ Two projects, one airline design, separate folders:
 - `dbms/` — DBMS mini project (MySQL 8.0, database `skyroute_db`).
   16 tables, deterministic generator (~14k bookings), 18 queries,
   views + trigger + procedure, transaction demos, indexes, report, slides.
-- `python/` — ES202 web project (Flask + stdlib sqlite3, full CRUD booking site).
+- `python/` — ES202 web project (Flask + mysql-connector-python on MySQL
+  `skyroute_app`, full CRUD booking site; SQLite `skyroute.db` stays as offline fallback).
 
 ## DBMS track (run from `dbms/`, mysql client as root)
 
@@ -26,12 +27,12 @@ Docs: `dbms/docs/REPORT_TEXT.md` (paste into Word), `SkyRoute_Report.pdf`,
 `SkyRoute_Slides.pptx`, `SkyRoute_ER.drawio` (open in diagrams.net, export PNG),
 `TESTING.md`, `VIVA_DBMS.md`.
 
-## Python track (run from repo root)
+## Python track (run from repo root; MySQL running + `python/flask_app/.env` filled in)
 
 ```
-python python/flask_app/seed_sqlite.py   # builds skyroute.db
-python python/flask_app/app.py           # http://127.0.0.1:5000
-python python/flask_app/test_app.py      # 13 end-to-end checks
+python python/flask_app/seed_mysql.py   # builds skyroute_app demo data
+python python/flask_app/app.py          # http://127.0.0.1:5000
+python python/flask_app/test_app.py     # reseeds skyroute_test, 28 end-to-end checks
 ```
 
 Docs: `python/FLASK_REPORT.md`, `python/VIVA_FLASK.md`.

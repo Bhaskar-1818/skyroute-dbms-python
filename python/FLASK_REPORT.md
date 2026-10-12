@@ -7,14 +7,16 @@ Staff pick any flight and see its full passenger manifest; travelers log in
 with their unique ID and see only their own bookings. Full CRUD, per the notice.
 
 ## Stack (per approved choices)
-Flask (no Django), stdlib `sqlite3` (no ORM — every query is visible SQL),
-plain HTML/CSS/vanilla JS (sufficient per the notice), SQLite file `skyroute.db`.
+Flask (no Django), `mysql-connector-python` (no ORM — every query is visible
+SQL) against MySQL 8.0 database `skyroute_app`, plain HTML/CSS/vanilla JS
+(sufficient per the notice). Credentials live in `flask_app/.env` (never
+committed); the SQLite file `skyroute.db` stays as the offline fallback.
 
-## Setup and run
+## Setup and run (MySQL running + `.env` filled in)
 ```
-python flask_app/seed_sqlite.py   # builds skyroute.db (29 departures, ~725 bookings, 600 travelers)
-python flask_app/app.py           # serves http://127.0.0.1:5000
-python flask_app/test_app.py      # end-to-end test, no server needed (28 checks)
+python flask_app/seed_mysql.py        # builds skyroute_app (29 departures, ~725 bookings, 600 travelers)
+python flask_app/app.py               # serves http://127.0.0.1:5000
+python flask_app/test_app.py          # reseeds skyroute_test, then 28 end-to-end checks, no server needed
 ```
 
 ## Roles
@@ -35,10 +37,12 @@ python flask_app/test_app.py      # end-to-end test, no server needed (28 checks
 - `UNIQUE(departure_id, seat_number)`: the seat map greys taken seats, the app
   pre-checks, and also catches the database IntegrityError — a double booking
   fails with words, never a crash page.
-- Booking + payment insert run in one transaction: both or neither.
+- Booking + payment insert run in one MySQL transaction: both or neither.
 - Baggage fee: 20 kg free, Rs 500 per excess kg (one constant pair, used everywhere).
-- SQLite adaptation of the MySQL schema: ENUM to TEXT+CHECK, AUTO_INCREMENT
-  to INTEGER PRIMARY KEY AUTOINCREMENT, DATETIME to sortable TEXT.
+- Connector notes: `%s` placeholders, dict cursors, `INSERT IGNORE`,
+  `NOW()`, scalar `GREATEST()`; DATETIME values arrive as strings so the
+  templates slice them unchanged. The suite runs against a throwaway
+  `skyroute_test` reseed, never dirtying the demo data.
 
 ## Privacy model (ID + demo-password login)
 No classroom demo carries real auth, so identity is explicit and minimal: a

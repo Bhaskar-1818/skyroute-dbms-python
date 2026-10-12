@@ -1,20 +1,50 @@
 """End-to-end check of the booking site via Flask test client (no server needed).
-Run from repo root:  python python/flask_app/test_app.py"""
-import sqlite3
+Runs against a throwaway MySQL database (reseeded fresh every run), so the
+demo skyroute_app is never dirtied. Run from repo root:
+    python python/flask_app/test_app.py
+Needs MySQL running + python/flask_app/.env credentials."""
+import os
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from app import app  # noqa: E402
+from db import connect  # noqa: E402
+from seed_mysql import main as seed_db  # noqa: E402
+
+TDB = os.getenv("TEST_DB", "skyroute_test")
+seed_db(TDB)
+# Point the app itself at the test database too: get_db() reads DB_NAME
+# per request, so every test-client call below hits the fresh reseed.
+os.environ["DB_NAME"] = TDB
 
 c = app.test_client()
 c2 = app.test_client()  # stranger with no identity
-db = sqlite3.connect(Path(__file__).resolve().parent / "skyroute.db")
+
+
+class Q:
+    """Connection-level execute shim (tuple rows, like the old sqlite3
+    handle) so every assertion below keeps working unchanged."""
+
+    def __init__(self, conn):
+        self.c = conn
+
+    def execute(self, sql, params=()):
+        cur = self.c.cursor()
+        cur.execute(sql, params)
+        self.c.commit()
+        return cur
+
+    def close(self):
+        self.c.close()
+
+
+db = Q(connect(TDB))
 
 
 def free_seat(dep_id, skip=()):
     taken = {r[0] for r in db.execute(
-        "SELECT seat_number FROM Bookings WHERE departure_id = ?", (dep_id,))}
+        "SELECT seat_number FROM Bookings WHERE departure_id = %s", (dep_id,))}
     taken |= set(skip)
     return next(f"{r}{l}" for r in range(1, 31) for l in "ABCDEF" if f"{r}{l}" not in taken)
 
@@ -82,44 +112,44 @@ assert r.status_code == 200 and b"already taken" in r.data, "double-booking guar
 print("double-booking refused ok")
 
 bid = db.execute("SELECT booking_id FROM Bookings WHERE departure_id = 1 "
-                 "AND seat_number = ? ORDER BY booking_id DESC",
+                 "AND seat_number = %s ORDER BY booking_id DESC",
                  (seat_a,)).fetchone()[0]
 
 seat_b = free_seat(1, skip=[seat_a])
 c.post(f"/bookings/{bid}/edit",
        data={"seat": seat_b, "travel_class": "Business", "price": "14000"})
-assert db.execute("SELECT seat_number FROM Bookings WHERE booking_id = ?",
+assert db.execute("SELECT seat_number FROM Bookings WHERE booking_id = %s",
                   (bid,)).fetchone()[0] == seat_b, "edit failed"
 print("booking edit ok")
 
 c.post(f"/baggage/{bid}", data={"weight": "25"})
-fee = db.execute("SELECT SUM(MAX(weight_kg - 20, 0)) * 500 FROM Baggage "
-                 "WHERE booking_id = ?", (bid,)).fetchone()[0]
+fee = db.execute("SELECT SUM(GREATEST(weight_kg - 20, 0)) * 500 FROM Baggage "
+                 "WHERE booking_id = %s", (bid,)).fetchone()[0]
 assert fee == 2500, f"fee wrong: {fee}"
 print("baggage + fee (25kg -> Rs 2500) ok")
 
 c.post(f"/baggage/{bid}", data={"weight": "-5"})
-assert db.execute("SELECT COUNT(*) FROM Baggage WHERE booking_id = ?",
+assert db.execute("SELECT COUNT(*) FROM Baggage WHERE booking_id = %s",
                   (bid,)).fetchone()[0] == 1, "bad weight accepted!"
 print("bad weight refused ok")
 
 c.post(f"/payment/{bid}/pay")
-assert db.execute("SELECT pay_status FROM Payments WHERE booking_id = ?",
+assert db.execute("SELECT pay_status FROM Payments WHERE booking_id = %s",
                   (bid,)).fetchone()[0] == "Paid", "pay failed"
 c.post(f"/checkin/{bid}")
-assert db.execute("SELECT COUNT(*) FROM Check_Ins WHERE booking_id = ?",
+assert db.execute("SELECT COUNT(*) FROM Check_Ins WHERE booking_id = %s",
                   (bid,)).fetchone()[0] == 1, "check-in failed"
 print("payment + check-in ok")
 
 c.post(f"/bookings/{bid}/cancel")
-assert db.execute("SELECT booking_status FROM Bookings WHERE booking_id = ?",
+assert db.execute("SELECT booking_status FROM Bookings WHERE booking_id = %s",
                   (bid,)).fetchone()[0] == "Cancelled", "cancel failed"
 print("cancel ok")
 
 c.post(f"/bookings/{bid}/delete")
-assert db.execute("SELECT COUNT(*) FROM Bookings WHERE booking_id = ?",
+assert db.execute("SELECT COUNT(*) FROM Bookings WHERE booking_id = %s",
                   (bid,)).fetchone()[0] == 0, "delete failed"
-assert db.execute("SELECT COUNT(*) FROM Baggage WHERE booking_id = ?",
+assert db.execute("SELECT COUNT(*) FROM Baggage WHERE booking_id = %s",
                   (bid,)).fetchone()[0] == 0, "cascade failed"
 print("delete + cascade ok")
 
@@ -130,7 +160,7 @@ assert r.status_code == 302
 pid = db.execute("SELECT passenger_id FROM Passengers WHERE email = 'test.user@example.com'").fetchone()[0]
 r = c.post(f"/passengers/{pid}/delete", follow_redirects=True)
 assert b"Staff only" in r.data, "passenger delete not staff-gated"
-assert db.execute("SELECT COUNT(*) FROM Passengers WHERE passenger_id = ?",
+assert db.execute("SELECT COUNT(*) FROM Passengers WHERE passenger_id = %s",
                   (pid,)).fetchone()[0] == 1, "ungated delete went through!"
 print("passenger delete staff-gated ok")
 
@@ -154,7 +184,7 @@ assert db.execute("SELECT COUNT(*) FROM Flights WHERE flight_number = 'SG-999'")
 print("same-airport flight refused ok")
 
 c.post(f"/passengers/{pid}/delete")
-assert db.execute("SELECT COUNT(*) FROM Passengers WHERE passenger_id = ?",
+assert db.execute("SELECT COUNT(*) FROM Passengers WHERE passenger_id = %s",
                   (pid,)).fetchone()[0] == 0, "staff passenger delete failed"
 print("passenger add/delete ok")
 
@@ -177,7 +207,7 @@ print("network chips ok")
 victim = db.execute("SELECT booking_id FROM Bookings LIMIT 1").fetchone()[0]
 r = c2.post(f"/bookings/{victim}/delete", follow_redirects=True)
 assert b"isn&#39;t yours" in r.data or b"isn't yours" in r.data, "cross-user delete not refused"
-assert db.execute("SELECT COUNT(*) FROM Bookings WHERE booking_id = ?",
+assert db.execute("SELECT COUNT(*) FROM Bookings WHERE booking_id = %s",
                   (victim,)).fetchone()[0] == 1, "cross-user delete went through!"
 print("cross-user mutation refused ok")
 db.close()

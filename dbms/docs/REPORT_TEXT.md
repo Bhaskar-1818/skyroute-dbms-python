@@ -32,8 +32,10 @@ pair, keep analytical queries fast at a demonstrated volume of 336 departures
 and roughly thirty-four thousand bookings. Every problem-statement item is closed by
 a named database mechanism, every mechanism carries a test in the validation
 protocol, and the design is carried into a Flask staff-portal web application
-on SQLite — traveler login, per-departure manifests, full create/read/update/delete
-coverage — reusing the same integrity rules in application code.
+backed by MySQL through mysql-connector-python — traveler login,
+per-departure manifests, full create/read/update/delete coverage — where
+every insert, update and delete lands visibly in the database server, reusing
+the same integrity rules in application code.
 
 ## Step 1: Title Selection
 SkyRoute: Airline Booking, Baggage & Staff Operations System. The title was chosen to
