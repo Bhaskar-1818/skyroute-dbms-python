@@ -16,7 +16,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from db import IntegrityError, connect  # noqa: E402
+from db import IntegrityError, connect, connect_admin  # noqa: E402
 
 random.seed(7)
 ROOT = Path(__file__).resolve().parent
@@ -24,17 +24,18 @@ DBNAME = sys.argv[1] if len(sys.argv) > 1 else "skyroute_app"
 
 
 def main(dbname=DBNAME):
-    admin = connect()
+    admin = connect_admin()
     acur = admin.cursor()
     acur.execute(f"DROP DATABASE IF EXISTS {dbname}")
     acur.execute(f"CREATE DATABASE {dbname} CHARACTER SET utf8mb4")
+    admin.commit()
     admin.close()
     con = connect(dbname)
-    con.execute(f"USE {dbname}")
+    cur = con.cursor()
+    cur.execute(f"USE {dbname}")
     for stmt in (ROOT / "schema_mysql.sql").read_text(encoding="utf-8").split(";"):
         if stmt.strip():
-            con.execute(stmt)
-    cur = con.cursor()
+            cur.execute(stmt)
     cur.executemany(
         "INSERT INTO Airports (iata_code, airport_name, city) VALUES (%s, %s, %s)",
         [("HYD", "Rajiv Gandhi International Airport", "Hyderabad"),
@@ -73,6 +74,8 @@ def main(dbname=DBNAME):
 
     N_PAX = 600
     NAMES = fetch_names()
+    pax_ids = []  # real auto ids (MySQL burns values on skipped duplicates,
+    # so ids are never assumed contiguous — bookings sample from this list)
     # Trip budgets: most travelers fly once, some twice, nobody more. This keeps
     # every traveler's story believable: no 14-trip frequent flyers in a demo.
     added, i = 0, 0
@@ -88,6 +91,7 @@ def main(dbname=DBNAME):
                             (fn, ln, f"D{200000 + added + 1}", phone, email))
             except IntegrityError:
                 continue  # duplicate email in source data: skip them
+            pax_ids.append(cur.lastrowid)
             added += 1
         else:
             FIRST = ["Aarav", "Ananya", "Arjun", "Diya", "Kavya", "Meera",
@@ -100,6 +104,7 @@ def main(dbname=DBNAME):
                             "VALUES (%s, %s, %s, %s, %s)",
                             (fn, ln, f"D{200000 + j}", f"98{10000000 + j}",
                              f"{fn.lower()}.{ln.lower()}{j}@example.com"))
+                pax_ids.append(cur.lastrowid)
             added = N_PAX
 
     deps = []  # (did, day, cap)
@@ -142,12 +147,12 @@ def main(dbname=DBNAME):
                         (f, f"{d} {dep_t}", f"{d} {arr_t}", SCHED[f - 1][6], gate))
             deps.append((did, day, FLEET[SCHED[f - 1][6] - 1][2]))
 
-    trips = [0] * (N_PAX + 1)
-    daybooked = [set() for _ in range(N_PAX + 1)]
-    budget = [0] + [1 if random.random() < 0.7 else 2 for _ in range(N_PAX)]
+    trips = {pid: 0 for pid in pax_ids}
+    daybooked = {pid: set() for pid in pax_ids}
+    budget = {pid: 1 if random.random() < 0.7 else 2 for pid in pax_ids}
     for did, day, cap in sorted(deps, key=lambda _: random.random()):
         want = max(1, int(cap * random.uniform(0.10, 0.22)))
-        elig = [p for p in range(1, N_PAX + 1)
+        elig = [p for p in pax_ids
                 if trips[p] < budget[p] and day not in daybooked[p]]
         chosen = random.sample(elig, min(want, len(elig)))
         seats = [f"{r}{l}" for r in range(1, cap // 6 + 2) for l in "ABCDEF"][:cap]

@@ -6,7 +6,10 @@ Read one answer, close the file, say it out loud in your own words, check.
 - Airline/Aircraft are tables, not text — "all IndiGo aircraft" is a JOIN.
 - Flight = timetable template; Departure = one dated departure
   ("6E-501 on Nov 3, gate G2"). One flight owns unlimited departures.
-- Flights carry departure AND arrival airports; CHECK blocks HYD→HYD rows.
+- Flights carry departure AND arrival airports; a BEFORE INSERT/UPDATE trigger
+  (trg_flights_route) blocks HYD→HYD rows with ERROR 1644 — a CHECK cannot sit
+  on these columns because MySQL rejects CHECKs on FK referential-action
+  columns (ERROR 3823).
 - Airports use RESTRICT, never CASCADE — deleting an airport must not wipe flights.
 - Composite UNIQUEs (terminal+gate) make gate clashes impossible in storage.
 - UNIQUE(departure, seat) kills double booking inside the engine (problem #1).

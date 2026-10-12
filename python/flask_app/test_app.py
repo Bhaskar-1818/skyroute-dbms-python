@@ -22,24 +22,42 @@ c = app.test_client()
 c2 = app.test_client()  # stranger with no identity
 
 
-class Q:
-    """Connection-level execute shim (tuple rows, like the old sqlite3
-    handle) so every assertion below keeps working unchanged."""
+class Rows:
+    """Eagerly fetched rows (tuple-style, like the old sqlite3 rows)."""
 
-    def __init__(self, conn):
-        self.c = conn
+    def __init__(self, rows):
+        self._rows = rows
+
+    def fetchone(self):
+        return self._rows[0] if self._rows else None
+
+    def fetchall(self):
+        return self._rows
+
+    def __iter__(self):
+        return iter(self._rows)
+
+
+class Q:
+    """Fresh MySQL connection per SELECT (short-lived, closed at once).
+    A single long-lived connection would pin a REPEATABLE READ snapshot
+    and hide rows the app commits mid-test — each query must see the
+    latest committed state, like the old shared-file reads did."""
 
     def execute(self, sql, params=()):
-        cur = self.c.cursor()
-        cur.execute(sql, params)
-        self.c.commit()
-        return cur
+        conn = connect(TDB)
+        try:
+            cur = conn.cursor()
+            cur.execute(sql, params)
+            return Rows(cur.fetchall())
+        finally:
+            conn.close()
 
     def close(self):
-        self.c.close()
+        pass
 
 
-db = Q(connect(TDB))
+db = Q()
 
 
 def free_seat(dep_id, skip=()):

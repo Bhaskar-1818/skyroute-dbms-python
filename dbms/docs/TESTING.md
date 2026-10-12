@@ -20,7 +20,7 @@ Date the run, paste the output or screenshot number next to each row.
 | # | Check | Expected | Evidence |
 |---|-------|----------|----------|
 | C-a | insert duplicate (departure_id, seat_number) | ERROR 1062, row rejected | Shot T3 |
-| C-b | insert flight with departure = arrival airport | CHECK violation, rejected | Shot T3 |
+| C-b | insert flight with departure = arrival airport | trigger SIGNAL (ERROR 1644), rejected | Shot T3 |
 | C-c | insert bag with weight 0 or negative | CHECK violation, rejected | Shot T3 |
 | C-d | delete an airport that still has flights | RESTRICT refuses (flights preserved) | Shot T3 |
 | C-e | delete a booking that has bags + payment | CASCADE wipes bags/payment, no orphans | Shot T3 |

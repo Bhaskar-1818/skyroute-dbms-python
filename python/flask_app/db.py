@@ -32,10 +32,17 @@ def connect(db=None):
     return mysql.connector.connect(**_cfg(db))
 
 
+def connect_admin():
+    """Password-only connection for CREATE/DROP DATABASE (no database yet)."""
+    cfg = _cfg()
+    cfg.pop("database", None)
+    return mysql.connector.connect(**cfg)
+
+
 def fetch_all(sql, params=(), db=None):
     conn = connect(db)
     try:
-        cur = conn.cursor(dictionary=True)
+        cur = conn.cursor(dictionary=True, buffered=True)
         cur.execute(sql, params)
         return cur.fetchall()
     finally:
@@ -45,7 +52,7 @@ def fetch_all(sql, params=(), db=None):
 def fetch_one(sql, params=(), db=None):
     conn = connect(db)
     try:
-        cur = conn.cursor(dictionary=True)
+        cur = conn.cursor(dictionary=True, buffered=True)
         cur.execute(sql, params)
         return cur.fetchone()
     finally:
@@ -105,6 +112,9 @@ class _Cur:
         return [{k: _clean(v) for k, v in row.items()}
                 for row in self._cur.fetchall()]
 
+    def __iter__(self):
+        return iter(self.fetchall())
+
     @property
     def lastrowid(self):
         return self._cur.lastrowid
@@ -119,7 +129,10 @@ class Conn:
         self._conn = conn
 
     def execute(self, sql, params=()):
-        cur = self._conn.cursor(dictionary=True)
+        # buffered: the full result set lands client-side at once, so a
+        # partially-read SELECT can never block the next statement with
+        # "Unread result found" on the shared per-request connection.
+        cur = self._conn.cursor(dictionary=True, buffered=True)
         cur.execute(sql, params)
         return _Cur(cur)
 

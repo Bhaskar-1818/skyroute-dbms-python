@@ -52,8 +52,10 @@ CREATE TABLE Aircraft (
 -- C3: A Flight is the TIMETABLE template (e.g. "6E-501 flies HYD->BLR daily at
 -- 08:00"). One row here can own unlimited dated departures. This split is what
 -- lets the system hold "as many flights as possible".
--- C4: departure AND arrival airports. The CHECK below makes a HYD->HYD nonsense
--- row impossible at the database level.
+-- C4: departure AND arrival airports. A CHECK cannot guard this pair: MySQL
+-- rejects a CHECK on any column that also carries a FOREIGN KEY referential
+-- action (ERROR 3823), and these columns do. The trigger below makes a
+-- HYD->HYD nonsense row impossible at the database level instead.
 CREATE TABLE Flights (
   flight_id            INT AUTO_INCREMENT PRIMARY KEY,
   flight_number        VARCHAR(10) NOT NULL,
@@ -75,9 +77,27 @@ CREATE TABLE Flights (
     ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT fk_flights_arrival   FOREIGN KEY (arrival_airport_id)
     REFERENCES Airports (airport_id)
-    ON DELETE RESTRICT ON UPDATE CASCADE,
-  CONSTRAINT chk_flights_route CHECK (departure_airport_id <> arrival_airport_id)
+    ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB;
+
+DELIMITER $$
+CREATE TRIGGER trg_flights_route BEFORE INSERT ON Flights
+FOR EACH ROW
+BEGIN
+  IF NEW.departure_airport_id = NEW.arrival_airport_id THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Route must differ: same-airport flight refused';
+  END IF;
+END$$
+CREATE TRIGGER trg_flights_route_upd BEFORE UPDATE ON Flights
+FOR EACH ROW
+BEGIN
+  IF NEW.departure_airport_id = NEW.arrival_airport_id THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Route must differ: same-airport flight refused';
+  END IF;
+END$$
+DELIMITER ;
 
 -- C6: Terminal -> Gate hang under one Airport. The composite UNIQUE keys are
 -- the schema-level answer to gate clashes: two rows can never claim the same

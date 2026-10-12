@@ -21,8 +21,9 @@ organises staff in role tables sharing each employee's key (Employees 1-1
 Pilot, Crew_Member and Ground_Staff). Integrity rules live inside the database rather than in any single
 application: a unique seat-per-departure key blocks double booking, a
 before-insert trigger blocks overselling past aircraft capacity, composite
-gate keys block gate clashes, and check constraints block impossible routes
-(HYD to HYD), non-positive baggage weights and negative prices. A stored
+gate keys block gate clashes, a trigger blocks impossible routes
+(HYD to HYD), and check constraints block non-positive baggage weights and
+negative prices. A stored
 procedure books a seat and opens its payment atomically; two reporting views
 serve the departure board and the booking receipt including the computed
 overweight-baggage fee (20 kg free per bag, Rs 500 per excess kg); transaction
@@ -235,7 +236,7 @@ bookings visible; the overweight list is non-empty by construction. Analytics
 (A1-A8): busiest routes match the scheduled frequencies; every load factor
 lands inside the generator's 35-80 band; fee revenue is positive. Constraints
 (C-a to C-e): duplicate seat rejected with ERROR 1062; HYD-to-HYD flight
-rejected; zero-weight bag rejected; airport deletion refused by RESTRICT;
+rejected by trigger with ERROR 1644; zero-weight bag rejected; airport deletion refused by RESTRICT;
 booking deletion cascades to bags, payment and check-in with zero orphans.
 Procedure and trigger (T-a to T-c): MakeBooking returns an id with a matching
 Pending payment; MakeBooking on a taken seat inserts nothing; booking past
@@ -276,9 +277,11 @@ Every problem-statement item is closed by a named database mechanism, every
 mechanism has a test with a stated expectation, and the system holds
 production-shaped volume while answering board, manifest, revenue, load,
 utilisation and fee questions in single queries. The Flask web project reuses
-the identical design on SQLite with raw SQL: a staff portal (PIN-gated
-manifests, check-ins, edits) plus traveler login (unique ID, own bookings
-only), keeping the same integrity rules visible in application code. The build order itself is the
+the identical design on MySQL through mysql-connector-python: a staff portal
+(PIN-gated manifests, check-ins, edits) plus traveler login (unique ID, own
+bookings only), so every insert, update and delete lands visibly in the
+database server while keeping the same integrity rules visible in application
+code. The build order itself is the
 method: masters before operations, constraints before data, rules before
 applications, measurement before claims.
 
