@@ -1,5 +1,6 @@
 {% extends "base.html" %}{% set page='search' %}{% block body %}
 <div class="card">
+{% if last_search is defined and last_search %}<a class="mut" href="/" title="Search again">← Back to search ({{ last_search.route }} · {{ last_search.day }})</a>{% endif %}
 <p class="mut" style="margin-top:0">{{ dep.airline_name }} · {{ dep.model or "" }}</p>
 <h2><span class="flight">{{ dep.flight_number }}</span>
 {{ dep.from_airport }} → {{ dep.to_airport }}</h2>
@@ -61,7 +62,7 @@ document.getElementById('bookform').addEventListener('submit',e=>{
 <div class="seats" id="cabin">
 {% for row in grid %}{% for s, is_taken in row %}
 {% if loop.index0 == 3 %}<span class="aisle"></span>{% endif %}
-<button type="button" data-seat="{{ s }}" {% if is_taken %}disabled{% endif %}>{{ s }}</button>
+<button type="button" data-seat="{{ s }}" aria-pressed="false" {% if is_taken %}disabled{% endif %}>{{ s }}</button>
 {% endfor %}{% endfor %}</div>
 {% if session.get('is_admin') %}
 <p class="mut">Staff mode: choose any traveler to book for them. The booking won't change your own login.</p>
@@ -79,7 +80,8 @@ document.getElementById('fprice').textContent=priceIn.value||'0';
 document.getElementById('ftotal').textContent=priceIn.value||'0';}
 clsSel.onchange=refreshFare;priceIn.oninput=refreshFare;
 document.querySelectorAll('#cabin button:not(:disabled)').forEach(b=>{
-b.onclick=()=>{document.querySelectorAll('#cabin button').forEach(x=>x.classList.remove('picked'));
-b.classList.add('picked');field.value=b.dataset.seat;label.textContent=b.dataset.seat;
+b.onclick=()=>{document.querySelectorAll('#cabin button').forEach(x=>{x.classList.remove('picked');
+x.setAttribute('aria-pressed','false');});
+b.classList.add('picked');b.setAttribute('aria-pressed','true');field.value=b.dataset.seat;label.textContent=b.dataset.seat;
 farebox.style.display='block';refreshFare();};});
 </script>{% endblock %}

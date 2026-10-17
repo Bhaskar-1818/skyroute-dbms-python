@@ -36,6 +36,13 @@ def main(dbname=DBNAME):
     for stmt in (ROOT / "schema_mysql.sql").read_text(encoding="utf-8").split(";"):
         if stmt.strip():
             cur.execute(stmt)
+    # Views + booking procedure live in the database too: the JOIN-heavy
+    # reads and sp_make_booking are created here, not in app.py. Blocks are
+    # separated by "-- @@" and each is sent as ONE statement (the procedure
+    # keeps its internal semicolons that way).
+    for stmt in (ROOT / "views_mysql.sql").read_text(encoding="utf-8").split("-- @@"):
+        if stmt.strip():
+            cur.execute(stmt)
     cur.executemany(
         "INSERT INTO Airports (iata_code, airport_name, city) VALUES (%s, %s, %s)",
         [("HYD", "Rajiv Gandhi International Airport", "Hyderabad"),

@@ -171,6 +171,7 @@ cursor:not-allowed;text-decoration:line-through}
 .seats button.picked{background:var(--lime);border-color:var(--lime);color:var(--forest);
 animation:pop var(--ease-snap)}
 .seats .aisle{visibility:hidden}
+@media (max-width:760px){.seats{grid-template-columns:repeat(7,44px);gap:6px}}
 @keyframes pop{0%{transform:scale(.85)}60%{transform:scale(1.08)}100%{transform:scale(1)}}
 /* boarding pass: white ticket, perforated stub */
 .ticket{background:var(--paper);border-radius:10px;display:grid;
@@ -269,6 +270,8 @@ main>.wrap{animation:pagein .35s ease both}
 @keyframes pagein{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 select,input,textarea{transition:border-color .2s ease,box-shadow .2s ease}
 select:focus,input:focus{box-shadow:0 0 0 3px rgba(159,232,112,.45)}
+button:focus-visible,.btn:focus-visible,a:focus-visible{outline:3px solid rgba(159,232,112,.7);outline-offset:2px}
+.seats button:focus-visible{outline-offset:1px}
 .segments a,.tag,.btn,button{transition:background .2s ease,filter .18s ease,transform .18s ease}
 .card{transition:box-shadow .25s ease,transform .25s ease}
 a{transition:color .15s ease}
@@ -313,74 +316,24 @@ header.top,.searchcard,.aclist{-webkit-backdrop-filter:url(#sky-glass);backdrop-
 <a href="/admin" class="{{ 'here' if page=='admin' else '' }}">Staff</a>
 </nav>
 <script>
-/* Apple-Music-style sliding pill: drag it across sections and the page only
-changes once it lands. Plain taps navigate instantly as before. Vanilla JS. */
+/* Section pill: tap-only navigation (no dragging). The indicator simply
+   re-anchors under the active link on load, on webfont load and on resize;
+   the CSS transition on .seg-ind makes it glide there. Vanilla JS. */
 (function(){
 var nav=document.querySelector('.segments');if(!nav)return;
-var links=Array.prototype.slice.call(nav.querySelectorAll('a'));
+var links=nav.querySelectorAll('a');
 var ind=nav.querySelector('.seg-ind');if(!ind||!links.length)return;
-links.forEach(function(l){l.setAttribute('draggable','false');});
-nav.addEventListener('dragstart',function(e){e.preventDefault();});
-var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
 function hereEl(){return nav.querySelector('a.here')||links[0];}
-function place(el,animate){
-ind.style.transition=animate?'':'none';
+function place(){
+var el=hereEl();
 ind.style.left=el.offsetLeft+'px';
 ind.style.width=el.offsetWidth+'px';
-if(!animate){void ind.offsetWidth;ind.style.transition='';}
 }
 nav.classList.add('js-seg');
-place(hereEl(),false);
-if(document.fonts&&document.fonts.ready){document.fonts.ready.then(function(){if(!dragging)place(hereEl(),false);});}
-window.addEventListener('resize',function(){if(!dragging)place(hereEl(),false);});
-window.addEventListener('load',function(){if(!dragging)place(hereEl(),false);});
-var dragging=false,moved=false,sx=0,base=0,pid=null,suppress=false;
-nav.addEventListener('pointerdown',function(e){
-if(e.button!==undefined&&e.button>0)return;
-var a=e.target.closest?e.target.closest('a'):null;if(!a)return;
-dragging=true;moved=false;sx=e.clientX;pid=e.pointerId;base=ind.offsetLeft;
-try{nav.setPointerCapture(pid);}catch(_){}
-ind.style.transition='none';
-});
-nav.addEventListener('pointermove',function(e){
-if(!dragging||e.pointerId!==pid)return;
-var dx=e.clientX-sx;
-if(Math.abs(dx)>6){moved=true;nav.classList.add('drag');}
-if(!moved)return;
-if(e.cancelable)e.preventDefault();
-var min=3,max=nav.clientWidth-ind.offsetWidth-3;
-if(max<min)max=min;
-var x=Math.max(min,Math.min(max,base+dx));
-/* magnetic snap: ease toward the nearest section center when close */
-var ci=x+ind.offsetWidth/2,bi=0,bd=1e9,k2,cc;
-for(k2=0;k2<links.length;k2++){cc=links[k2].offsetLeft+links[k2].offsetWidth/2;if(Math.abs(cc-ci)<bd){bd=Math.abs(cc-ci);bi=k2;}}
-if(bd<18){cc=links[bi].offsetLeft+links[bi].offsetWidth/2;x+=(cc-(x+ind.offsetWidth/2))*0.5;
-x=Math.max(min,Math.min(max,x));}
-ind.style.left=x+'px';
-var cx=x+ind.offsetWidth/2,i,l;
-for(i=0;i<links.length;i++){l=links[i];
-links[i].classList.toggle('cand',cx>=l.offsetLeft&&cx<l.offsetLeft+l.offsetWidth);}
-},{passive:false});
-function clearCand(){for(var i=0;i<links.length;i++)links[i].classList.remove('cand');}
-function finish(e){
-if(!dragging||(e&&e.pointerId!==pid))return;
-dragging=false;
-nav.classList.remove('drag');
-try{nav.releasePointerCapture(pid);}catch(_){}
-ind.style.transition='';
-if(!moved){place(hereEl());return;}
-var cx=ind.offsetLeft+ind.offsetWidth/2,target=links[0],i,l;
-for(i=0;i<links.length;i++){l=links[i];if(cx>=l.offsetLeft&&cx<l.offsetLeft+l.offsetWidth){target=l;break;}}
-clearCand();
-if(target===hereEl()){place(hereEl());return;}
-suppress=true;
-setTimeout(function(){suppress=false;},600);
-place(target);
-setTimeout(function(){location.href=target.getAttribute('href');},reduce?0:300);
-}
-nav.addEventListener('pointerup',finish);
-nav.addEventListener('pointercancel',function(){dragging=false;nav.classList.remove('drag');clearCand();ind.style.transition='';place(hereEl());});
-nav.addEventListener('click',function(e){if(suppress){e.preventDefault();e.stopPropagation();suppress=false;}},true);
+place();
+if(document.fonts&&document.fonts.ready){document.fonts.ready.then(place);}
+window.addEventListener('resize',place);
+window.addEventListener('load',place);
 })();
 </script>
 <span style="margin-left:auto"></span>

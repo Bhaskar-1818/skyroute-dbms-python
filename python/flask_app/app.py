@@ -14,7 +14,7 @@ from pathlib import Path
 
 from flask import Flask, flash, g, redirect, render_template, request, session, url_for
 
-from db import Conn, IntegrityError, connect
+from db import Conn, IntegrityError, call_make_booking, connect
 
 ROOT = Path(__file__).resolve().parent
 DB = ROOT / "skyroute.db"
@@ -144,25 +144,18 @@ def index():
             flash("Departure and arrival airports must differ.", "error")
         else:
             dep, arr = codes
+            # Multi-table JOIN lives in the database: v_departure_board
+            # already carries flight, airline, airports, gate, aircraft
+            # and the non-cancelled seat count (sold).
             results = db.execute(
-                """SELECT d.departure_id, f.flight_number, al.airline_name,
-                          d.scheduled_departure, d.scheduled_arrival,
-                          g.gate_number, d.departure_status,
-                           (SELECT COUNT(*) FROM Bookings b
-                             WHERE b.departure_id = d.departure_id
-                               AND b.booking_status != 'Cancelled') AS sold,
-                          ac.capacity, ac.model
-                   FROM Departures d
-                   JOIN Flights f ON d.flight_id = f.flight_id
-                   JOIN Airlines al ON f.airline_id = al.airline_id
-                   JOIN Airports dep ON f.departure_airport_id = dep.airport_id
-                   JOIN Airports arr ON f.arrival_airport_id = arr.airport_id
-                   LEFT JOIN Aircraft ac ON d.aircraft_id = ac.aircraft_id
-                   LEFT JOIN Gates g ON d.gate_id = g.gate_id
-                    WHERE dep.iata_code = %s AND arr.iata_code = %s
-                      AND date(d.scheduled_departure) = %s
-                   ORDER BY d.scheduled_departure""",
+                """SELECT * FROM v_departure_board
+                    WHERE from_airport = %s AND to_airport = %s
+                      AND DATE(scheduled_departure) = %s
+                    ORDER BY scheduled_departure""",
                 (dep, arr, day)).fetchall()
+            # Remember the search (with or without hits) so the booking page
+            # can offer the way back to these very results.
+            session["last_search"] = {"route": dep + "-" + arr, "day": day}
             if not results:
                 flash("No departures on this route and date. Try HYD to BLR on 2026-11-03.", "error")
     return render_template("index.html", airports=airports, results=results, routes=ROUTES)
@@ -173,17 +166,7 @@ def index():
 def book(departure_id):
     db = get_db()
     dep = db.execute(
-        """SELECT d.*, f.flight_number, al.airline_name, ac.capacity, ac.model,
-                   g.gate_number,
-                   dep_a.iata_code AS from_airport, arr_a.iata_code AS to_airport
-            FROM Departures d
-            JOIN Flights f ON d.flight_id = f.flight_id
-            JOIN Airlines al ON f.airline_id = al.airline_id
-            JOIN Airports dep_a ON f.departure_airport_id = dep_a.airport_id
-            JOIN Airports arr_a ON f.arrival_airport_id = arr_a.airport_id
-            LEFT JOIN Aircraft ac ON d.aircraft_id = ac.aircraft_id
-            LEFT JOIN Gates g ON d.gate_id = g.gate_id
-            WHERE d.departure_id = %s""",
+        "SELECT * FROM v_departure_detail WHERE departure_id = %s",
         (departure_id,)).fetchone()
     if dep is None:
         return "Unknown departure", 404
@@ -229,23 +212,12 @@ def book(departure_id):
             flash(f"Seat {seat} is already taken on this departure. Pick a green seat.", "error")
         else:
             try:
-                with db:  # one transaction: booking + payment together or neither
-                    # A cancelled booking still holds its (departure, seat) key
-                    # until it is cleared, so clear it first — the seat is
-                    # genuinely free again and its stale payment/bags/check-in
-                    # vanish with it via ON DELETE CASCADE.
-                    db.execute("DELETE FROM Bookings WHERE departure_id = %s "
-                               "AND seat_number = %s AND booking_status = 'Cancelled'",
-                               (departure_id, seat))
-                    cur = db.execute(
-                        "INSERT INTO Bookings (passenger_id, departure_id, seat_number, travel_class, price) "
-                        "VALUES (%s, %s, %s, %s, %s)",
-                        (int(pid), departure_id, seat, tclass, price))
-                    bid = cur.lastrowid
-                    db.execute(
-                        "INSERT INTO Payments (booking_id, amount, pay_method, pay_status, txn_reference) "
-                        "VALUES (%s, %s, 'UPI', 'Pending', %s)",
-                        (bid, price, f"TXNAPP{100000 + bid}"))
+                # One stored-procedure call books the seat and opens its
+                # payment atomically (all-or-nothing, inside the database).
+                # A cancelled booking still holding this (departure, seat)
+                # key is cleared by the procedure first; its stale payment,
+                # bags and check-in vanish with it via ON DELETE CASCADE.
+                bid = call_make_booking(int(pid), departure_id, seat, tclass, price)
             except IntegrityError:
                 # Only reachable through a true race now: inputs above are valid,
                 # so a constraint failure here means the seat just got taken.
@@ -263,7 +235,8 @@ def book(departure_id):
                     for p in passengers]
     return render_template("book.html", dep=dep, grid=grid,
                            taken=sorted(taken), passengers=passengers,
-                           pax_list=pax_list)
+                           pax_list=pax_list,
+                           last_search=session.get("last_search"))
 
 
 # ------------------------------ 3. my bookings --------------------------------
@@ -302,27 +275,13 @@ def bookings():
                                me=None, pax_id=None, gated=True, trav_list=[])
     where, args = "", []
     if pax_id:
-        where, args = "WHERE b.passenger_id = %s", [pax_id]
+        where, args = "WHERE passenger_id = %s", [pax_id]
+    # Every JOIN the ticket list needs (passenger, flight, airports, gate,
+    # payment, bags/boarding aggregates) lives in v_booking_list.
     rows = db.execute(
-        f"""SELECT b.*, p.first_name, p.last_name, f.flight_number, d.scheduled_departure,
-                  d.scheduled_arrival, dep.iata_code AS from_airport, arr.iata_code AS to_airport,
-                  g.gate_number, pay.pay_status,
-                  (SELECT COUNT(*) FROM Baggage WHERE booking_id = b.booking_id) AS bags,
-                  COALESCE((SELECT SUM(weight_kg) FROM Baggage
-                            WHERE booking_id = b.booking_id), 0) AS bag_kg,
-                   COALESCE((SELECT ROUND(SUM(GREATEST(weight_kg - 20, 0)) * 500, 2) FROM Baggage
-                             WHERE booking_id = b.booking_id), 0) AS fee,
-                  (SELECT boarding_status FROM Check_Ins WHERE booking_id = b.booking_id) AS boarding
-           FROM Bookings b
-           JOIN Passengers p ON b.passenger_id = p.passenger_id
-           JOIN Departures d ON b.departure_id = d.departure_id
-           JOIN Flights f ON d.flight_id = f.flight_id
-           JOIN Airports dep ON f.departure_airport_id = dep.airport_id
-           JOIN Airports arr ON f.arrival_airport_id = arr.airport_id
-           LEFT JOIN Gates g ON d.gate_id = g.gate_id
-           LEFT JOIN Payments pay ON b.booking_id = pay.booking_id
-           {where}
-           ORDER BY b.booking_id DESC LIMIT 100""", args).fetchall()
+        f"""SELECT * FROM v_booking_list
+            {where}
+            ORDER BY booking_id DESC LIMIT 100""", args).fetchall()
     travelers = db.execute(
         "SELECT passenger_id, first_name, last_name FROM Passengers ORDER BY passenger_id LIMIT 120").fetchall()
     me = None
@@ -396,43 +355,15 @@ def manifest(departure_id):
         flash("Staff only. Unlock the Staff page with the PIN first.", "error")
         return redirect(url_for("admin"))
     db = get_db()
+    # Header + seat rows come straight from the two staff views; the header
+    # view also carries the non-cancelled seat count (sold) for the stats.
     dep = db.execute(
-        """SELECT d.departure_id, d.scheduled_departure, d.scheduled_arrival,
-                  d.departure_status, f.flight_number, al.airline_name,
-                  dep_a.iata_code AS from_airport, dep_a.city AS from_city,
-                  arr_a.iata_code AS to_airport, arr_a.city AS to_city,
-                  ac.capacity, ac.model, g.gate_number,
-                  (SELECT COUNT(*) FROM Bookings b
-                    WHERE b.departure_id = d.departure_id
-                      AND b.booking_status != 'Cancelled') AS sold
-           FROM Departures d
-           JOIN Flights f ON d.flight_id = f.flight_id
-           JOIN Airlines al ON f.airline_id = al.airline_id
-           JOIN Airports dep_a ON f.departure_airport_id = dep_a.airport_id
-           JOIN Airports arr_a ON f.arrival_airport_id = arr_a.airport_id
-           LEFT JOIN Aircraft ac ON d.aircraft_id = ac.aircraft_id
-           LEFT JOIN Gates g ON d.gate_id = g.gate_id
-            WHERE d.departure_id = %s""",
+        "SELECT * FROM v_departure_board WHERE departure_id = %s",
         (departure_id,)).fetchone()
     if dep is None:
         return "Unknown departure", 404
     rows = db.execute(
-        """SELECT b.booking_id, b.seat_number, b.travel_class, b.price,
-                  b.booking_status, p.passenger_id, p.first_name, p.last_name,
-                  pay.pay_status,
-                  (SELECT boarding_status FROM Check_Ins
-                    WHERE booking_id = b.booking_id) AS boarding,
-                  (SELECT COUNT(*) FROM Baggage
-                    WHERE booking_id = b.booking_id) AS bags,
-                  COALESCE((SELECT SUM(weight_kg) FROM Baggage
-                            WHERE booking_id = b.booking_id), 0) AS bag_kg,
-                   COALESCE((SELECT ROUND(SUM(GREATEST(weight_kg - 20, 0)) * 500, 2)
-                             FROM Baggage WHERE booking_id = b.booking_id), 0) AS fee
-            FROM Bookings b
-            JOIN Passengers p ON b.passenger_id = p.passenger_id
-            LEFT JOIN Payments pay ON b.booking_id = pay.booking_id
-            WHERE b.departure_id = %s
-            ORDER BY b.seat_number""",
+        "SELECT * FROM v_manifest WHERE departure_id = %s ORDER BY seat_number",
         (departure_id,)).fetchall()
     cap = dep["capacity"] or 180
     sold = dep["sold"] or 0
@@ -452,11 +383,17 @@ def booking_edit(bid):
     if not owns(bid):
         return refuse()
     db = get_db()
+    # Two plain single-table reads instead of one JOIN: Bookings is keyed
+    # by booking_id, and v_departure_detail already carries the aircraft
+    # capacity. A missing booking stays the same plain 404; a departure
+    # missing under it keeps the old JOIN's None result (same 404).
+    booking = db.execute(
+        "SELECT departure_id FROM Bookings WHERE booking_id = %s", (bid,)).fetchone()
+    if booking is None:
+        return "Unknown booking", 404
     dep = db.execute(
-        """SELECT b.departure_id, ac.capacity FROM Bookings b
-           JOIN Departures d ON b.departure_id = d.departure_id
-           LEFT JOIN Aircraft ac ON d.aircraft_id = ac.aircraft_id
-           WHERE b.booking_id = %s""", (bid,)).fetchone()
+        "SELECT capacity FROM v_departure_detail WHERE departure_id = %s",
+        (booking["departure_id"],)).fetchone()
     if dep is None:
         return "Unknown booking", 404
     seat = (request.form.get("seat") or "").strip().upper()
@@ -469,7 +406,7 @@ def booking_edit(bid):
     clash = db.execute(
         "SELECT 1 FROM Bookings WHERE departure_id = %s AND seat_number = %s "
         "AND booking_id != %s AND booking_status != 'Cancelled'",
-        (dep["departure_id"], seat, bid)).fetchone()
+        (booking["departure_id"], seat, bid)).fetchone()
     if seat not in valid_seats(dep["capacity"]):
         flash(f"Seat {seat or '?'} doesn't exist on this plane.", "error")
     elif not price_ok:
@@ -665,22 +602,14 @@ def admin():
               for t in ("Flights", "Departures", "Passengers", "Bookings",
                         "Baggage", "Payments", "Check_Ins")}
     flights = db.execute(
-        "SELECT f.*, al.airline_name FROM Flights f "
-        "JOIN Airlines al ON f.airline_id = al.airline_id ORDER BY f.flight_id").fetchall()
+        "SELECT * FROM v_flight_list ORDER BY flight_id").fetchall()
     airports = db.execute("SELECT * FROM Airports ORDER BY iata_code").fetchall()
     airlines = db.execute("SELECT * FROM Airlines ORDER BY airline_id").fetchall()
     departures = db.execute(
-        """SELECT d.departure_id, f.flight_number,
-                  dep.iata_code AS from_airport, arr.iata_code AS to_airport,
-                  date(d.scheduled_departure) AS day,
-                  (SELECT COUNT(*) FROM Bookings b
-                    WHERE b.departure_id = d.departure_id
-                      AND b.booking_status != 'Cancelled') AS sold
-           FROM Departures d
-           JOIN Flights f ON d.flight_id = f.flight_id
-           JOIN Airports dep ON f.departure_airport_id = dep.airport_id
-           JOIN Airports arr ON f.arrival_airport_id = arr.airport_id
-           ORDER BY d.scheduled_departure LIMIT 60""").fetchall()
+        """SELECT departure_id, flight_number, from_airport, to_airport,
+                  DATE(scheduled_departure) AS day, sold
+           FROM v_departure_board
+           ORDER BY scheduled_departure LIMIT 60""").fetchall()
     travelers = db.execute("SELECT * FROM Passengers ORDER BY passenger_id DESC LIMIT 200").fetchall()
     return render_template("admin.html", counts=counts, flights=flights,
                            airports=airports, airlines=airlines,

@@ -90,6 +90,36 @@ def transaction(db=None):
         conn.close()
 
 
+def call_make_booking(passenger_id, departure_id, seat, tclass, price):
+    """Book a seat + open its pending payment via sp_make_booking (the whole
+    thing is one stored-procedure transaction). Returns the new booking_id.
+    A seat that is genuinely taken trips the UNIQUE key inside the
+    procedure; the raw IntegrityError is re-raised here, so app.py's
+    existing except IntegrityError handling keeps working."""
+    conn = connect()
+    try:
+        cur = conn.cursor()
+        # The connector reads OUT parameters back for us: callproc() SETs
+        # @_sp_make_booking_arg1..6, CALLs the procedure, then SELECTs those
+        # variables back on this same connection and returns the row.
+        # p_booking_id is the 6th argument, so it lands at index 5.
+        args = cur.callproc("sp_make_booking",
+                            (passenger_id, departure_id, seat, tclass, price, 0))
+        booking_id = args[5] if args else None
+        if not booking_id:
+            # Older/other connector versions may not hand the OUT value
+            # back; LAST_INSERT_ID() still holds it on this connection.
+            cur.execute("SELECT LAST_INSERT_ID()")
+            booking_id = cur.fetchone()[0]
+        conn.commit()
+        return booking_id
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
 def _clean(value):
     """MySQL returns DATETIME as datetime objects; SQLite returned the same
     columns as 'YYYY-MM-DD HH:MM:SS' strings and every template slices and

@@ -8,13 +8,16 @@ with their unique ID and see only their own bookings. Full CRUD, per the notice.
 
 ## Stack (per approved choices)
 Flask (no Django), `mysql-connector-python` (no ORM — every query is visible
-SQL) against MySQL 8.0 database `skyroute_app`, plain HTML/CSS/vanilla JS
-(sufficient per the notice). Credentials live in `flask_app/.env` (never
+SQL) against MySQL 8.0 database `skyroute_app`. Multi-table reads run against
+database **views** (`v_departure_board`, `v_departure_detail`, `v_booking_list`,
+`v_manifest`, `v_flight_list`) and booking creation calls the stored procedure
+**`sp_make_booking`** — the app itself carries only plain single-table SQL.
+Plain HTML/CSS/vanilla JS (sufficient per the notice). Credentials live in `flask_app/.env` (never
 committed); the SQLite file `skyroute.db` stays as the offline fallback.
 
 ## Setup and run (MySQL running + `.env` filled in)
 ```
-python flask_app/seed_mysql.py        # builds skyroute_app (29 departures, ~725 bookings, 600 travelers)
+python flask_app/seed_mysql.py        # builds skyroute_app (29 departures, ~725 bookings, 600 travelers + views + sp_make_booking)
 python flask_app/app.py               # serves http://127.0.0.1:5000
 python flask_app/test_app.py          # reseeds skyroute_test, then 28 end-to-end checks, no server needed
 ```
@@ -37,7 +40,8 @@ python flask_app/test_app.py          # reseeds skyroute_test, then 28 end-to-en
 - `UNIQUE(departure_id, seat_number)`: the seat map greys taken seats, the app
   pre-checks, and also catches the database IntegrityError — a double booking
   fails with words, never a crash page.
-- Booking + payment insert run in one MySQL transaction: both or neither.
+- Booking + payment are created by the stored procedure `sp_make_booking`:
+  one call, both rows or neither (its EXIT HANDLER rolls back and re-raises).
 - Baggage fee: 20 kg free, Rs 500 per excess kg (one constant pair, used everywhere).
 - Connector notes: `%s` placeholders, dict cursors, `INSERT IGNORE`,
   `NOW()`, scalar `GREATEST()`; DATETIME values arrive as strings so the
@@ -65,6 +69,16 @@ manifest/bookings access is redirected, and login shows only owned tickets.
 - Trip budgets: most travelers fly once, some twice, nobody more; at most one
   departure per day — nobody boards two flights at once and nobody lives on
   planes. Adding a timetable flight auto-opens its next 7 dated departures.
+
+## DB-side objects (refactor 2026-10-17)
+- Views: `v_departure_board` (route search), `v_departure_detail` (booking page),
+  `v_booking_list` (my bookings), `v_manifest` (staff manifest), `v_flight_list`
+  (timetable list) — every multi-table read lives in the database.
+- Procedure: `sp_make_booking(passenger, departure, seat, class, price, OUT booking_id)` —
+  frees a cancelled seat, inserts the booking + its Pending payment, atomic.
+- Loaded by `seed_mysql.py` from `views_mysql.sql`; the app calls the procedure via
+  `db.call_make_booking()` (mysql-connector `callproc`). To upgrade an existing
+  database without reseeding: `python flask_app/apply_views.py`.
 
 ## Verification
 `test_app.py` passes 28 checks with zero server: privacy gate, route search,

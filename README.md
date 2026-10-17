@@ -30,7 +30,7 @@ Docs: `dbms/docs/REPORT_TEXT.md` (paste into Word), `SkyRoute_Report.pdf`,
 ## Python track (run from repo root; MySQL running + `python/flask_app/.env` filled in)
 
 ```
-python python/flask_app/seed_mysql.py   # builds skyroute_app demo data
+python python/flask_app/seed_mysql.py   # builds skyroute_app demo data + views + sp_make_booking
 python python/flask_app/app.py          # http://127.0.0.1:5000
 python python/flask_app/test_app.py     # reseeds skyroute_test, 28 end-to-end checks
 ```

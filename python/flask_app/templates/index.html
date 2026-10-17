@@ -30,6 +30,7 @@ sf.route.value=b.dataset.route;sf.submit();};});
 {% if results %}
 <div class="card">
 <h2>{{ results|length }} departures found</h2>
+<div style="overflow-x:auto">
 <table><tr><th>Flight</th><th>Departs</th><th>Arrives</th><th>Gate</th>
 <th>Status</th><th>Seats sold</th><th></th></tr>
 {% for r in results %}<tr>
@@ -44,4 +45,5 @@ sf.route.value=b.dataset.route;sf.submit();};});
 <span class="tag bad">Only {{ r.capacity - r.sold }} left</span>{% endif %}</td>
 <td><a class="btn small" href="/book/{{ r.departure_id }}">Choose seat</a>
 {% if session.get('is_admin') %}<a class="btn small ghost" href="/manifest/{{ r.departure_id }}">Manifest</a>{% endif %}</td></tr>{% endfor %}</table>
+</div>
 </div>{% endif %}{% endblock %}

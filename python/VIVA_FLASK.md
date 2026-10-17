@@ -7,6 +7,9 @@
     exactly what the evaluation checks (open Workbench and watch the rows
     change). No ORM because every query stays visible SQL, which is the
     point while learning. SQLAlchemy would hide exactly what I need to show.
+    Multi-table reads run against database VIEWS (v_departure_board,
+    v_departure_detail, v_booking_list, v_manifest, v_flight_list) and
+    booking creation calls the stored procedure sp_make_booking.
 2. CRUD mapping? Create: book seat (+auto payment), register traveler, add
    flight, add bag. Read: route search, manifest, own bookings with receipt +
    fee, staff counts. Update: edit seat/class/price, edit traveler, cancel,
@@ -17,10 +20,11 @@
    pre-check is politeness, the key is correctness.
 4. Fee rule location? One constant pair FREE_KG/FEE_PER_KG in app.py, mirrored
    from booking_receipt_view in MySQL. 25 kg → Rs 2,500.
-5. Booking + payment atomicity? One MySQL transaction inserts both (see
-    db.py transaction()); any failure rolls back both. Same idea as
-    MakeBooking, in application code — and the seat can't double-sell
-    because UNIQUE(departure_id, seat_number) lives in the server.
+5. Booking + payment atomicity? Booking creation calls the stored procedure
+    sp_make_booking (one call does booking + payment; its EXIT HANDLER rolls
+    back and re-raises on any failure). The seat can't double-sell because
+    UNIQUE(departure_id, seat_number) lives in the server — a losing race
+    reaches the app as a plain IntegrityError and gets words, not a crash.
 6. Placeholders and rows under the connector? `%s` instead of `?`
     (connector style), dict cursors so `r["seat_number"]` reads the same,
     `lastrowid` and commit/rollback like before. MySQL returns DATETIME
@@ -58,7 +62,7 @@
 1. Home: "Airplane Management System — staff portal plus traveler login."
 2. Search HYD-BLR on 2026-11-03: "typed route, departure board with gates."
 3. Log in as traveler 1: "ID plus demo password — only my tickets."
-4. Book a green seat: "booking plus Pending payment, one transaction."
+4. Book a green seat: "booking plus Pending payment — the stored procedure sp_make_booking, one call."
 5. Book it again: "refused with words, not a crash."
 6. Add 25 kg bag: "Rs 2,500 fee — 5 kg over at Rs 500."
 7. Unlock Staff, open the manifest: "every passenger on this departure."
