@@ -1,0 +1,210 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SkyRoute Ops — Airplane Management System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+/* SkyRoute on Refero "Wise" tokens: forest gravity, one lime punctuation,
+   pills for actions, 10px cards, flat hairlines, dark-section rhythm. */
+:root{--forest:#163300;--lime:#9fe870;--spruce:#054d28;--mist:#e2f6d5;
+--fog:#e8ebe6;--paper:#fff;--char:#454745;--obsidian:#0e0f0c;
+--pebble:#868685;--slate:#6a6c6a;--red:#cb272f;--line:#dfe4dc}
+*{box-sizing:border-box}
+body{font-family:'Inter',"Segoe UI",Arial,sans-serif;margin:0;
+background:var(--forest);color:var(--char);font-size:16px;-webkit-font-smoothing:antialiased;
+background-image:radial-gradient(rgba(159,232,112,.06) 1px,transparent 1.1px),
+radial-gradient(ellipse 80% 340px at 50% -120px,rgba(159,232,112,.10),transparent 70%);
+background-size:26px 26px,100% 100%
+main>.wrap>h2{color:#fff}
+footer.site{border-top:1px solid rgba(255,255,255,.16);color:#cfe3c8}
+footer.site b{color:var(--lime)}
+.wrap{max-width:1200px;margin:0 auto;padding:0 24px}
+/* top nav: white, hairline bottom, pill section switcher */
+header.top{position:sticky;top:0;z-index:20;background:var(--paper);
+border-bottom:1px solid var(--line)}
+.navbar{display:flex;align-items:center;gap:18px;height:64px}
+.brand{font-weight:900;font-size:20px;letter-spacing:-.02em;color:var(--forest);
+text-decoration:none}
+.brand b{color:var(--forest)}.brand .dot{color:var(--forest)}
+.segments{display:flex;background:var(--fog);border-radius:9999px;padding:3px;gap:2px}
+.segments a{text-decoration:none;color:var(--char);font-weight:500;font-size:14px;
+padding:8px 16px;border-radius:9999px;transition:background .2s ease}
+.segments a:hover{background:var(--mist)}
+.segments a.here{background:var(--forest);color:#fff}
+/* hero: dark forest section, block display type, lime punctuation */
+.hero{background:var(--forest);color:#fff;border-radius:28px;margin:32px 0 0;
+padding:56px 48px 0;overflow:hidden;position:relative;
+background-image:radial-gradient(rgba(159,232,112,.13) 1.2px,transparent 1.3px);
+background-size:26px 26px}
+.hero .kicker{color:var(--lime);font-weight:600;font-size:14px;letter-spacing:.14em;
+text-transform:uppercase}
+.hero h1{font-size:clamp(44px,7vw,96px);line-height:.95;letter-spacing:-.03em;
+font-weight:900;margin:10px 0 8px;color:#fff}
+.hero h1 .lime{color:var(--lime)}
+.hero p.sub{color:#cfe3c8;font-size:19px;max-width:640px}
+.how{display:flex;gap:10px;margin:22px 0 0;flex-wrap:wrap}
+.how span{background:rgba(255,255,255,.1);border-radius:9999px;padding:9px 18px;
+font-size:14px;font-weight:500}
+.how b{color:var(--lime);margin-right:6px}
+/* inset white search card inside the dark hero */
+.searchcard{background:var(--paper);border-radius:10px;padding:20px;
+margin:30px 0 -1px;display:grid;grid-template-columns:1fr 1fr auto;gap:12px;
+align-items:end;box-shadow:0 10px 32px rgba(0,0,0,.18)}
+.searchcard .field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.searchcard button{white-space:nowrap;padding:12px 26px;height:50px}
+.searchcard .chips{grid-column:1/-1;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+@media (max-width:760px){.searchcard{grid-template-columns:1fr}
+.searchcard button{width:100%;height:52px}}
+.field{display:flex;flex-direction:column;gap:4px;flex:1;min-width:150px}
+.field label{font-size:12px;font-weight:600;color:var(--slate);
+text-transform:uppercase;letter-spacing:.06em}
+select,input{font:inherit;padding:12px 14px;border:1px solid var(--pebble);
+border-radius:10px;background:var(--paper);color:var(--char);width:100%}
+select:focus,input:focus{outline:none;border-color:var(--forest)}
+/* pill CTA: lime fill does all the work */
+button,.btn{background:var(--lime);color:var(--forest);border:none;border-radius:9999px;
+padding:12px 26px;font-size:16px;font-weight:600;cursor:pointer;text-decoration:none;
+display:inline-block;transition:transform .18s ease,filter .18s ease;white-space:nowrap}
+button:hover,.btn:hover{filter:brightness(.96);transform:translateY(-1px)}
+button:active,.btn:active{transform:translateY(0) scale(.98)}
+button.ghost,.btn.ghost{background:var(--paper);color:var(--forest);border:1px solid var(--forest);
+padding:8px 16px;font-size:14px}
+button.danger,.btn.danger{background:var(--paper);color:var(--red);border:1px solid var(--red);
+padding:8px 16px;font-size:14px}
+button.small,.btn.small{padding:8px 16px;font-size:14px}
+/* cards: fog surface, hairline ring, staggered entrance */
+.card{background:var(--paper);border-radius:10px;padding:24px;margin:20px 0;
+box-shadow:rgba(14,15,12,.12) 0 0 0 1px;animation:rise .5s ease both}
+.card:nth-child(2){animation-delay:.06s}.card:nth-child(3){animation-delay:.12s}
+.card:nth-child(4){animation-delay:.18s}.card:nth-child(5){animation-delay:.24s}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+h2{color:var(--obsidian);letter-spacing:-.02em;margin:0 0 6px}
+.mut{color:var(--slate);font-size:14px}
+.mono{font-family:Consolas,Menlo,monospace}
+.flight{font-family:Consolas,Menlo,monospace;font-weight:700;font-size:18px;color:var(--forest)}
+table{border-collapse:collapse;width:100%;margin:8px 0}
+th,td{padding:10px 12px;text-align:left;font-size:15px;border-bottom:1px solid var(--line)}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--slate)}
+/* tags: pill badges */
+.tag{display:inline-block;border-radius:9999px;padding:5px 14px;font-size:13px;font-weight:500}
+.tag.gate{background:var(--forest);color:#fff;font-family:Consolas,monospace}
+.tag.ok{background:var(--mist);color:var(--forest)}
+.tag.dim{background:#fff;color:var(--slate);box-shadow:inset 0 0 0 1px var(--pebble)}
+.tag.dark{background:var(--forest);color:var(--lime)}
+.tag.warn{background:var(--paper);color:var(--forest);box-shadow:inset 0 0 0 1px var(--forest)}
+.tag.bad{background:#fbe4e4;color:var(--red)}
+.tag.blue{background:#e3edf4;color:var(--signal,#0b4c72)}
+/* journey strip: departure ———✈——— arrival with times */
+.route{display:flex;align-items:center;gap:10px;margin:8px 0;font-family:Consolas,monospace}
+.route .ap{font-weight:700;font-size:17px;color:var(--forest)}
+.route .tm{font-size:13px;color:var(--slate)}
+.route .line{flex:1;height:2px;background:var(--mist);position:relative;border-radius:2px;min-width:60px}
+.route .line::after{content:"✈";position:absolute;top:-14px;left:50%;transform:translateX(-50%);
+background:var(--lime);color:var(--forest);border-radius:9999px;width:26px;height:26px;
+font-size:14px;line-height:26px;text-align:center}
+/* baggage allowance bar: 20 kg free per bag */
+.bagbar{height:8px;border-radius:9999px;background:var(--fog);margin:6px 0 2px;overflow:hidden}
+.bagbar i{display:block;height:100%;background:var(--forest);border-radius:9999px}
+.bagbar.over i{background:var(--red)}
+/* fare box on the booking page */
+.fare{background:var(--forest);color:#fff;border-radius:10px;padding:16px 20px;margin:14px 0}
+.fare .row{display:flex;justify-content:space-between;padding:3px 0;font-size:15px}
+.fare .total{border-top:1px solid rgba(255,255,255,.25);margin-top:6px;padding-top:8px;
+font-weight:700;font-size:18px}
+.fare .total b{color:var(--lime)}
+/* seat map: rounded seats, lime selection pops */
+.seats{display:grid;grid-template-columns:repeat(7,56px);gap:8px;margin:14px 0;
+justify-content:start}
+.seats button{height:46px;font-family:Consolas,monospace;font-size:14px;font-weight:600;
+background:var(--paper);border:1px solid var(--forest);color:var(--forest);
+border-radius:10px;cursor:pointer;transition:transform .15s ease,background .15s ease}
+.seats button:hover:not(:disabled){background:var(--mist);transform:translateY(-2px)}
+.seats button:disabled{background:var(--fog);border-color:var(--fog);color:var(--pebble);
+cursor:not-allowed;text-decoration:line-through}
+.seats button.picked{background:var(--lime);border-color:var(--lime);color:var(--forest);
+animation:pop .25s ease}
+.seats .aisle{visibility:hidden}
+@keyframes pop{0%{transform:scale(.85)}60%{transform:scale(1.08)}100%{transform:scale(1)}}
+/* boarding pass: white ticket, perforated stub */
+.ticket{background:var(--paper);border-radius:10px;display:grid;
+grid-template-columns:210px 1fr;box-shadow:rgba(14,15,12,.12) 0 0 0 1px;
+margin:16px 0;overflow:hidden;animation:rise .5s ease both}
+.stub{background:var(--forest);color:#fff;padding:20px;text-align:center}
+.stub .seat{font-size:44px;font-weight:900;letter-spacing:-.03em;color:var(--lime)}
+.stub .fl{font-family:Consolas,monospace;font-size:14px;color:#cfe3c8}
+.tbody{padding:18px 22px;border-left:2px dashed var(--pebble);position:relative}
+.tbody h3{margin:0 0 4px;color:var(--obsidian);letter-spacing:-.01em}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+form.inline{display:inline}
+/* flash: slides down, lime for ok */
+.flash{border-radius:10px;padding:13px 18px;margin:16px 0;font-weight:500;
+animation:drop .3s ease both}
+.flash.ok{background:var(--mist);color:var(--forest)}
+.flash.error{background:#fbe4e4;color:var(--red)}
+@keyframes drop{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+/* themed autocomplete: type-in traveler pickers (replaces native popups) */
+.acwrap{position:relative}
+.aclist{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:30;
+background:var(--paper);border-radius:10px;overflow:hidden auto;max-height:300px;
+box-shadow:rgba(14,15,12,.12) 0 0 0 1px,0 14px 34px rgba(0,0,0,.20)}
+.aclist button{display:flex;gap:10px;align-items:baseline;width:100%;
+background:none;border:none;border-radius:0;padding:10px 14px;font-size:14px;
+color:var(--char);cursor:pointer;text-align:left}
+.aclist button:hover{background:var(--mist)}
+.aclist button b{font-family:Consolas,monospace;color:var(--forest)}
+/* ticket: stub keeps its lane, body never slides under it */
+.ticket{grid-template-columns:200px minmax(0,1fr)}
+.stub{min-width:0;overflow:hidden}
+.tbody{min-width:0}
+.tbody h3{overflow-wrap:break-word}
+footer.site{margin-top:48px;padding:22px 0 40px;font-size:13px}
+@media (max-width:760px){.ticket{grid-template-columns:1fr}.tbody{border-left:none;
+border-top:2px dashed var(--pebble)}.hero{padding:36px 24px 0}.how{display:none}}
+/* smooth motion pass: page enter, control transitions, focus glow */
+html{scroll-behavior:smooth}
+main>.wrap{animation:pagein .35s ease both}
+@keyframes pagein{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+select,input,textarea{transition:border-color .2s ease,box-shadow .2s ease}
+select:focus,input:focus{box-shadow:0 0 0 3px rgba(159,232,112,.45)}
+.segments a,.tag,.btn,button{transition:background .2s ease,filter .18s ease,transform .18s ease}
+.card{transition:box-shadow .25s ease,transform .25s ease}
+a{transition:color .15s ease}
+/* auth + register form grids */
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0}
+.formgrid .span2{grid-column:1/-1}
+.formgrid .field{min-width:0}
+.authform .field{margin:0 0 14px}
+.authform input{width:100%}
+.hint{background:var(--mist);border-radius:10px;padding:12px 16px;font-size:14px;color:var(--forest)}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--spruce);margin:0 0 4px}
+@media (max-width:640px){.formgrid{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style></head>
+<body>
+<header class="top"><div class="wrap navbar">
+<a class="brand" href="/">SkyRoute Ops<span class="dot">.</span></a>
+<nav class="segments">
+<a href="/" class="{{ 'here' if page=='search' else '' }}">Flights</a>
+<a href="/bookings?pax=0" class="{{ 'here' if page=='bookings' else '' }}">Bookings</a>
+<a href="/passengers" class="{{ 'here' if page=='pax' else '' }}">Register</a>
+<a href="/admin" class="{{ 'here' if page=='admin' else '' }}">Staff</a>
+</nav>
+<span style="margin-left:auto"></span>
+{% if session.get('is_admin') %}
+<form class="inline" action="/staff-logout" method="post" title="Lock the staff portal again"><button class="ghost small">Lock staff</button></form>
+{% endif %}
+{% if traveler %}
+<a class="tag ok" style="text-decoration:none" href="/bookings" title="Filtered to your tickets">
+{{ traveler.first_name }} {{ traveler.last_name }}</a>
+<form class="inline" action="/logout" method="post"><button class="ghost small">Logout</button></form>
+{% else %}
+<a class="btn small" href="/login">Login</a>
+{% endif %}</div></header>
+<main><div class="wrap">
+{% with msgs = get_flashed_messages(with_categories=true) %}
+{% for cat, m in msgs %}<div class="flash {{ cat }}">{{ m }}</div>{% endfor %}{% endwith %}
+{% block body %}{% endblock %}
+</div></main>
+<footer class="site"><div class="wrap"><b>SkyRoute Ops.</b> Airplane Management System · staff portal ·
+baggage rule: 20 kg free, Rs 500 per extra kg · staff PIN-gated CRUD</div></footer>
+</body></html>
