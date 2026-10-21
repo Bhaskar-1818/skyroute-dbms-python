@@ -1,0 +1,4 @@
+test_booking	bags_before	payments_before
+34710	1	1
+bags_after	payments_after
+0	0

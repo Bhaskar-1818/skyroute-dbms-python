@@ -1,0 +1,1 @@
+ERROR 1142 (42000) at line 1: INSERT command denied to user 'sky_viewer'@'localhost' for table 'airports'

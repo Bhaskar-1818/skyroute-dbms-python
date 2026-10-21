@@ -1,5 +1,5 @@
-"""Builds dbms/docs/SkyRoute_DBMS_Report.docx from REPORT_TEXT.md.
-Run from repo root:  python dbms/docs/build_report.py"""
+﻿"""Builds dbms/docs/report/SkyRoute_DBMS_Report.docx from REPORT_TEXT.md.
+Run from repo root:  python dbms/tools/build_report.py"""
 import sys
 from pathlib import Path
 
@@ -44,5 +44,6 @@ for kind, payload in load():
         for it in payload:
             doc.add_paragraph(it, style="List Bullet")
 
-doc.save("dbms/docs/SkyRoute_DBMS_Report.docx")
+doc.save("dbms/docs/report/SkyRoute_DBMS_Report.docx")
 print("report written")
+

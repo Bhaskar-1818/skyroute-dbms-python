@@ -1,0 +1,30 @@
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	SIMPLE	Bookings	NULL	ref	idx_bookings_status	idx_bookings_status	1	const	5449	100.00	Using index condition
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	SIMPLE	Bookings	NULL	ALL	NULL	NULL	NULL	NULL	33904	25.00	Using where
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	SIMPLE	Bookings	NULL	ref	idx_bookings_status	idx_bookings_status	1	const	5449	100.00	Using index condition
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	SIMPLE	Departures	NULL	range	idx_departures_date	idx_departures_date	5	NULL	16	100.00	Using index condition
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	SIMPLE	Departures	NULL	ALL	NULL	NULL	NULL	NULL	336	11.11	Using where
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	SIMPLE	Departures	NULL	range	idx_departures_date	idx_departures_date	5	NULL	16	100.00	Using index condition
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	SIMPLE	Passengers	NULL	ref	idx_passengers_name	idx_passengers_name	242	const	257	100.00	NULL
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	SIMPLE	Passengers	NULL	ALL	NULL	NULL	NULL	NULL	3946	10.00	Using where
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	SIMPLE	Passengers	NULL	ref	idx_passengers_name	idx_passengers_name	242	const	257	100.00	NULL
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	SIMPLE	Baggage	NULL	range	idx_baggage_weight	idx_baggage_weight	3	NULL	8704	100.00	Using where; Using index
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	SIMPLE	Baggage	NULL	ALL	NULL	NULL	NULL	NULL	42678	33.33	Using where
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	SIMPLE	Baggage	NULL	range	idx_baggage_weight	idx_baggage_weight	3	NULL	8704	100.00	Using where; Using index
+Table	Non_unique	Key_name	Seq_in_index	Column_name	Collation	Cardinality	Sub_part	Packed	Null	Index_type	Comment	Index_comment	Visible	Expression
+bookings	0	PRIMARY	1	booking_id	A	33904	NULL	NULL		BTREE			YES	NULL
+bookings	0	uq_booking_seat	1	departure_id	A	324	NULL	NULL		BTREE			YES	NULL
+bookings	0	uq_booking_seat	2	seat_number	A	33904	NULL	NULL		BTREE			YES	NULL
+bookings	1	fk_booking_passenger	1	passenger_id	A	3999	NULL	NULL		BTREE			YES	NULL
+bookings	1	idx_bookings_status	1	booking_status	A	2	NULL	NULL		BTREE			YES	NULL

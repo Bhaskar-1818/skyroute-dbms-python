@@ -1,0 +1,4 @@
+ERROR 1062 (23000) at line 6: Duplicate entry '1-20B' for key 'bookings.uq_booking_seat'
+ERROR 1644 (45000) at line 11: Route must differ: same-airport flight refused
+ERROR 3819 (HY000) at line 16: Check constraint 'baggage_chk_1' is violated.
+ERROR 1451 (23000) at line 19: Cannot delete or update a parent row: a foreign key constraint fails (`skyroute_db`.`flights`, CONSTRAINT `fk_flights_arrival` FOREIGN KEY (`arrival_airport_id`) REFERENCES `airports` (`airport_id`) ON DELETE RESTRICT ON UPDATE CASCADE)

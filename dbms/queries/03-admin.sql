@@ -1,9 +1,9 @@
--- Queries 03 v2 : admin - structure + row counts (health check + screenshots)
+﻿-- Queries 03 v2 : admin - structure + row counts (health check + screenshots)
 USE skyroute_db;
 
 SHOW TABLES;
 
-SELECT 'Airports' AS tbl, COUNT(*) AS rows FROM Airports
+SELECT 'Airports' AS tbl, COUNT(*) AS row_count FROM Airports
 UNION ALL SELECT 'Airlines', COUNT(*) FROM Airlines
 UNION ALL SELECT 'Aircraft', COUNT(*) FROM Aircraft
 UNION ALL SELECT 'Flights', COUNT(*) FROM Flights
@@ -27,3 +27,4 @@ DESC Departures;
 SELECT * FROM Departures LIMIT 5;
 DESC Bookings;
 SELECT * FROM Bookings LIMIT 5;
+

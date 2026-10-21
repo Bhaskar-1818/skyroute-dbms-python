@@ -1,4 +1,4 @@
-"""SUPERSEDED by build_chen.py — kept as history. Do not run: its output path
+﻿"""SUPERSEDED by build_chen.py â€” kept as history. Do not run: its output path
 collides with the canonical SkyRoute_ER.drawio. If ever revived, retarget
 the save below to SkyRoute_ER_layered.drawio first.
 Legacy builder: layered-boxes ER diagram (draw.io)."""
@@ -95,6 +95,7 @@ for c in cells:
     root.append(c)
 
 ET.indent(mxfile)
-with open("dbms/docs/SkyRoute_ER_layered.drawio", "w", encoding="utf-8") as f:
+with open("dbms/docs/design/SkyRoute_ER_layered.drawio", "w", encoding="utf-8") as f:
     f.write('<?xml version="1.0" encoding="UTF-8"?>\n' + ET.tostring(mxfile, encoding="unicode"))
 print("drawio written")
+

@@ -23,7 +23,7 @@ SOURCE advanced/05-indexes.sql;     -- 4 indexes + EXPLAIN checks
 ```
 
 Fresh seed any time (deterministic, seed 42): `python data/generate.py`
-Docs: `dbms/docs/REPORT_TEXT.md` (paste into Word), `SkyRoute_Report.pdf`,
+Docs: `dbms/docs/report/REPORT_FINAL.md` (paste into Word), `SkyRoute_Report.pdf`,
 `SkyRoute_Slides.pptx`, `SkyRoute_ER.drawio` (open in diagrams.net, export PNG),
 `TESTING.md`, `VIVA_DBMS.md`.
 
@@ -47,6 +47,26 @@ Passwords: Admin@123, Staff@123, Viewer@123. Verify with SHOW GRANTS.
 - One seat per departure: `UNIQUE(departure_id, seat_number)`.
 - No overselling: `trg_booking_capacity` vs aircraft capacity.
 - No gate clash: `UNIQUE(terminal_id, gate_number)`.
-- No HYD→HYD route: `CHECK (departure_airport_id <> arrival_airport_id)`.
+- No HYD→HYD route: `trg_flights_route` trigger (a CHECK cannot guard two FK columns in MySQL).
 - Baggage fee: 20 kg free, Rs 500 per excess kg (`booking_receipt_view`).
 - Baggage is weak: PK `(booking_id, baggage_seq)`, cascade delete.
+
+## Screenshot workflow (report evidence)
+
+The report's test log claims evidence, so the evidence has to exist. The full
+copy-paste list of every statement to run and capture is in
+`dbms/docs/evidence/CAPTURE_GUIDE.md`.
+
+1. Run the statement in MySQL Workbench or the mysql client.
+2. Screenshot the result grid including the column headers.
+3. Save it as `dbms/docs/evidence/screenshots/T<n>.png` (for example `T1.png`, `T6a.png`).
+4. Rebuild the report - the builder embeds every PNG in that folder:
+
+```powershell
+cd "C:\D Drive Folders\Projects\bhaskar\skyroute-dbms-python"
+uv run --with fpdf2 python dbms/tools/build_pdf.py
+```
+
+Naming matters: the folder is read in filename order, so T1 through T8 appear in
+test-log order. Delete a PNG and the next build simply drops it from the report.
+

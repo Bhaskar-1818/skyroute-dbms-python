@@ -1,0 +1,19 @@
+# One caption per screenshot:  file name | caption
+# The build reads this file; anything missing falls back to the file name.
+
+Screenshot 2026-10-21 214245.png | J1 flight schedule: five-table join across Flights, Airlines and Airports
+Screenshot 2026-10-21 214304.png | J4 bookings with payment, check-in and bag totals (LEFT JOIN keeps bag-less rows)
+Screenshot 2026-10-21 214328.png | J10 crew directory across pilots, crew members and ground staff
+Screenshot 2026-10-21 222504.png | Busiest routes: MAA to BOM leads with 2,688 bookings
+Screenshot 2026-10-21 222616.png | Load factor below 60 per cent (GROUP BY with HAVING)
+Screenshot 2026-10-21 222646.png | Overweight baggage: 8,704 bags and Rs 2,69,74,740 in fees
+Screenshot 2026-10-21 222721.png | Passengers spending above the average fare (subquery)
+Screenshot 2026-10-21 222750.png | Duplicate seat rejected by uq_booking_seat (ERROR 1062)
+Screenshot 2026-10-21 222852.png | MakeBooking creates booking 34714 and its Pending UPI payment
+Screenshot 2026-10-21 222926.png | Capacity trigger refuses an oversold seat (ERROR 45000)
+Screenshot 2026-10-21 222956.png | Cleanup restores the aircraft capacity and the count to 34,708
+Screenshot 2026-10-21 223031.png | ROLLBACK discards the uncommitted passenger row
+zz-lock-wait.png | Row lock: session 2 waits 9.08 s until session 1 rolls back (captured console output)
+Screenshot 2026-10-21 223843.png | Grants for the three roles: admin, staff and read-only viewer
+Screenshot 2026-10-21 223914.png | Row counts across the six largest tables
+zz-step10-index.png | Index before and after: 5,449 rows by index becomes a 33,904-row scan, then back

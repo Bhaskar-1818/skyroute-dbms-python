@@ -1,16 +1,16 @@
-"""Chen ER v2 — vertical journey-flow layout (deliberately unlike the friend's
+﻿"""Chen ER v2 â€” vertical journey-flow layout (deliberately unlike the friend's
 landscape scatter): 4 top-to-bottom lanes (places / flights / travelers /
 staff band), attributes stacked above+below each box, diamonds inline on the
 wires, cross-lane links on side channels. Plain B/W Chen, schema-case entity
 names matching CREATE TABLE, lowercase verb diamonds, italic cardinality
 cells. No ISA: role tables are plain entities with 1-1 diamonds.
-Emits dbms/docs/SkyRoute_ER.drawio + dbms/docs/ER_Diagram.png.
-Run from repo root:  python dbms/docs/build_chen.py"""
+Emits dbms/docs/SkyRoute_ER.drawio + dbms/docs/design/ER_Diagram.png.
+Run from repo root:  python dbms/tools/build_chen.py"""
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
-OUT = Path(__file__).resolve().parent
+OUT = Path(__file__).resolve().parents[2] / "dbms" / "docs" / "design"
 F_TITLE = ImageFont.load_default(size=26)
 F_ENT = ImageFont.load_default(size=18)
 F_ATTR = ImageFont.load_default(size=14)
@@ -224,7 +224,7 @@ vertex(100, 6900, 600, 400, "", ENT_ST)
 vertex(120, 6912, 560, 30, "&lt;b&gt;Notation&lt;/b&gt;", LEG_ST)
 LEG_ROWS = [
  ("rect", 6975, "entity set (16)"),
- ("oval", 7020, "attribute — underline = key"),
+ ("oval", 7020, "attribute â€” underline = key"),
  ("diamond", 7065, "relationship"),
  ("double_rect", 7110, "weak entity (Baggage)"),
  ("cards", 7155, "cardinality: 1 / N / 0..N"),
@@ -350,15 +350,16 @@ with open(OUT / "ER_Dictionary.md", "w", encoding="utf-8") as f:
     f.write("Entity names match CREATE TABLE statements exactly.\n\n")
     for name, (cx, cy, attrs) in ENTS.items():
         keys = [c for c, t in attrs if t == "PK"]
-        f.write(f"## {name} — {DESC[name]}\n")
+        f.write(f"## {name} â€” {DESC[name]}\n")
         f.write(f"Key: {', '.join(keys)}. Columns: "
                 + ", ".join(c + (" [PK]" if t == "PK" else (" [FK]" if t == "FK" else "")) for c, t in attrs) + "\n")
         rels = [w["d"][0] for w in WIRE for ent, _ in w["legs"] if ent == name]
-        f.write("Relationships: " + (", ".join(rels) if rels else "—") + "\n\n")
+        f.write("Relationships: " + (", ".join(rels) if rels else "â€”") + "\n\n")
     f.write("## Relationships\n\n")
     f.write("| Relationship | Ends (cardinality) |\n|---|---| \n")
     for wdef in WIRE:
         dname = wdef["d"][0]
-        legs = " — ".join(f"{ent} ({wdef['cards'][i][0]})" for i, (ent, _) in enumerate(wdef["legs"]))
+        legs = " â€” ".join(f"{ent} ({wdef['cards'][i][0]})" for i, (ent, _) in enumerate(wdef["legs"]))
         f.write(f"| {dname} | {legs} |\n")
 print("dictionary written")
+

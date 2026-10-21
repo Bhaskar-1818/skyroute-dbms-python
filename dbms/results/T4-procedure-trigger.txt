@@ -1,0 +1,16 @@
+chosen_departure
+1
+new_booking_id
+34711
+seat_number	travel_class	price
+99Z	Economy	4500.00
+pay_status	pay_method
+Pending	UPI
+ERROR 1062 (23000) at line 20: Duplicate entry '1-99Z' for key 'bookings.uq_booking_seat'
+rows_with_seat_99Z
+1
+ERROR 1644 (45000) at line 28: Booking refused: flight is fully booked
+rows_with_seat_99Z_after_cleanup
+0
+total_bookings_unchanged
+34708

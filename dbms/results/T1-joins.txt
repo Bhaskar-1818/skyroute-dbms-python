@@ -1,0 +1,260 @@
+flight_number	airline_name	from_airport	to_airport	sched_departure	sched_arrival	flight_status
+6E-501	IndiGo	HYD	BLR	08:00:00	09:20:00	Active
+6E-502	IndiGo	BLR	HYD	10:10:00	11:30:00	Active
+6E-511	IndiGo	HYD	BOM	18:05:00	19:35:00	Active
+6E-531	IndiGo	HYD	MAA	11:45:00	13:00:00	Active
+6E-541	IndiGo	BOM	HYD	07:40:00	09:05:00	Active
+6E-551	IndiGo	MAA	BOM	19:10:00	21:05:00	Active
+AI-654	Air India	DEL	BOM	07:15:00	09:25:00	Active
+AI-671	Air India	BOM	MAA	13:40:00	15:35:00	Active
+AI-682	Air India	MAA	HYD	17:20:00	18:35:00	Active
+AI-701	Air India	HYD	DEL	09:05:00	11:15:00	Active
+AI-702	Air India	DEL	BLR	12:20:00	15:00:00	Active
+SG-893	SpiceJet	BLR	DEL	06:30:00	09:10:00	Active
+SG-894	SpiceJet	DEL	HYD	20:00:00	22:15:00	Active
+SG-901	SpiceJet	BOM	DEL	09:30:00	11:40:00	Active
+SG-902	SpiceJet	BLR	MAA	15:25:00	16:30:00	Active
+SG-903	SpiceJet	DEL	MAA	10:50:00	13:45:00	Active
+departure_id	flight_number	scheduled_departure	tail_number	model	gate_number	terminal_code	departure_status
+7	SG-893	2026-11-01 06:30:00	VT-SR007	Boeing 737-8	G3	T1	Arrived
+4	AI-654	2026-11-01 07:15:00	VT-SR004	Airbus A321	G4	T1	Arrived
+13	6E-541	2026-11-01 07:40:00	VT-SR013	Airbus A320neo	G1	T1	Arrived
+1	6E-501	2026-11-01 08:00:00	VT-SR001	Airbus A320neo	G1	T1	Arrived
+11	AI-701	2026-11-01 09:05:00	VT-SR011	Airbus A320neo	G3	T1	Arrived
+10	SG-901	2026-11-01 09:30:00	VT-SR010	Boeing 737-8	G2	T1	Arrived
+2	6E-502	2026-11-01 10:10:00	VT-SR002	Airbus A320neo	G2	T1	Arrived
+16	SG-903	2026-11-01 10:50:00	VT-SR016	Boeing 737-8	G4	T1	Arrived
+9	6E-531	2026-11-01 11:45:00	VT-SR009	ATR 72-600	G1	T1	Arrived
+12	AI-702	2026-11-01 12:20:00	VT-SR012	Airbus A320neo	G4	T1	Arrived
+5	AI-671	2026-11-01 13:40:00	VT-SR005	Airbus A320	G1	T1	Arrived
+14	SG-902	2026-11-01 15:25:00	VT-SR014	Boeing 737-700	G2	T1	Arrived
+6	AI-682	2026-11-01 17:20:00	VT-SR006	Airbus A320	G2	T1	Arrived
+3	6E-511	2026-11-01 18:05:00	VT-SR003	Airbus A321neo	G3	T1	Arrived
+15	6E-551	2026-11-01 19:10:00	VT-SR015	Airbus A321neo	G3	T1	Arrived
+8	SG-894	2026-11-01 20:00:00	VT-SR008	Boeing 737-8	G4	T1	Arrived
+23	SG-893	2026-11-02 06:30:00	VT-SR007	Boeing 737-8	G4	T1	Arrived
+20	AI-654	2026-11-02 07:15:00	VT-SR004	Airbus A321	G1	T1	Arrived
+29	6E-541	2026-11-02 07:40:00	VT-SR013	Airbus A320neo	G2	T1	Arrived
+17	6E-501	2026-11-02 08:00:00	VT-SR001	Airbus A320neo	G2	T1	Arrived
+seat_number	first_name	last_name	travel_class	price	booking_status
+10A	Sanya	Reddy	Economy	5374.00	Confirmed
+10C	Riya	Mehta	Business	13879.00	Confirmed
+10D	Meera	Menon	Economy	4762.00	Confirmed
+10F	Nikhil	Joshi	Economy	4427.00	Confirmed
+11A	Kavya	Gupta	Economy	4616.00	Confirmed
+11C	Ishaan	Kumar	Economy	5264.00	Refunded
+11D	Sneha	Patel	Economy	5128.00	Refunded
+11E	Riya	Das	Economy	5164.00	Confirmed
+12A	Pooja	Patel	Economy	5396.00	Refunded
+12E	Nikhil	Rao	Economy	4977.00	Confirmed
+13C	Kavya	Sharma	Economy	5097.00	Refunded
+13D	Pooja	Menon	Economy	5086.00	Refunded
+13E	Pooja	Kumar	Economy	4269.00	Confirmed
+14A	Aisha	Mehta	Economy	5351.00	Refunded
+14C	Neha	Joshi	Economy	5264.00	Confirmed
+14D	Aditya	Das	Economy	5012.00	Refunded
+14E	Diya	Rao	Economy	4299.00	Confirmed
+14F	Ishaan	Nair	Economy	4258.00	Confirmed
+15A	Pooja	Rao	Economy	5052.00	Confirmed
+15B	Meera	Menon	Economy	5344.00	Refunded
+15C	Rohan	Iyer	Economy	4867.00	Confirmed
+15E	Aditya	Menon	Economy	4508.00	Refunded
+15F	Diya	Verma	Economy	5283.00	Confirmed
+16A	Ananya	Singh	Economy	4788.00	Confirmed
+16C	Sneha	Joshi	Economy	4688.00	Confirmed
+16D	Aisha	Joshi	Economy	4247.00	Refunded
+17A	Aisha	Reddy	Economy	4718.00	Confirmed
+17C	Meera	Verma	Economy	4206.00	Confirmed
+17D	Sanya	Rao	Economy	4536.00	Confirmed
+17E	Sneha	Rao	Economy	4301.00	Confirmed
+17F	Krishna	Reddy	Premium Economy	8218.00	Confirmed
+18A	Kavya	Rao	Premium Economy	7454.00	Refunded
+18B	Priya	Nair	Economy	5383.00	Refunded
+18E	Rohan	Mehta	Economy	4690.00	Confirmed
+19A	Ishaan	Joshi	Premium Economy	7254.00	Confirmed
+19B	Meera	Singh	Economy	4608.00	Confirmed
+19C	Ananya	Singh	Economy	5295.00	Confirmed
+19D	Rohan	Menon	Economy	4746.00	Confirmed
+19E	Pooja	Verma	Premium Economy	7708.00	Confirmed
+19F	Rohan	Kumar	Economy	4503.00	Confirmed
+1A	Aisha	Reddy	Economy	4547.00	Confirmed
+1C	Nikhil	Verma	Economy	4922.00	Confirmed
+1D	Aisha	Joshi	Economy	5191.00	Confirmed
+1E	Rohan	Das	Economy	5090.00	Confirmed
+1F	Ishaan	Reddy	Economy	4545.00	Confirmed
+20B	Arjun	Singh	Economy	4505.00	Refunded
+20C	Sanya	Das	Premium Economy	7855.00	Confirmed
+20D	Krishna	Nair	Economy	4531.00	Refunded
+21A	Krishna	Reddy	Economy	5216.00	Confirmed
+21C	Priya	Nair	Premium Economy	7425.00	Refunded
+21D	Rohan	Singh	Premium Economy	7748.00	Refunded
+21F	Sanya	Rao	Premium Economy	8289.00	Refunded
+22B	Kavya	Rao	Economy	5014.00	Confirmed
+22C	Nikhil	Patel	Business	14593.00	Confirmed
+22E	Diya	Iyer	Economy	4870.00	Confirmed
+22F	Arjun	Iyer	Economy	4541.00	Refunded
+23B	Sanya	Iyer	Economy	5032.00	Confirmed
+23C	Neha	Sharma	Economy	4664.00	Confirmed
+23D	Rohan	Das	Business	14400.00	Confirmed
+23E	Aisha	Mehta	Economy	4759.00	Confirmed
+23F	Neha	Patel	Economy	4578.00	Confirmed
+24A	Kavya	Nair	Economy	4228.00	Refunded
+24D	Aditya	Nair	Economy	4235.00	Confirmed
+24E	Vikram	Gupta	Economy	5211.00	Confirmed
+24F	Sanya	Patel	Economy	5173.00	Refunded
+25A	Diya	Mehta	Economy	5158.00	Confirmed
+25C	Aisha	Reddy	Economy	5048.00	Confirmed
+25E	Rahul	Reddy	Economy	4365.00	Refunded
+25F	Aisha	Patel	Economy	4789.00	Refunded
+26A	Rohan	Nair	Business	14403.00	Refunded
+26B	Krishna	Das	Economy	4929.00	Confirmed
+26C	Sneha	Singh	Premium Economy	8043.00	Confirmed
+26D	Aisha	Kumar	Business	14258.00	Refunded
+26F	Sanya	Patel	Economy	4898.00	Confirmed
+27A	Priya	Iyer	Economy	4396.00	Refunded
+27C	Sneha	Sharma	Economy	4809.00	Confirmed
+27D	Rahul	Verma	Economy	4842.00	Refunded
+27E	Sanya	Iyer	Business	14069.00	Confirmed
+28A	Riya	Gupta	Economy	4359.00	Confirmed
+28D	Pooja	Iyer	Business	13966.00	Refunded
+28F	Krishna	Singh	Economy	5071.00	Refunded
+29C	Sanya	Menon	Economy	4542.00	Refunded
+29D	Neha	Nair	Economy	5174.00	Refunded
+29F	Meera	Nair	Economy	4707.00	Confirmed
+2D	Aisha	Nair	Premium Economy	8254.00	Confirmed
+2E	Aarav	Kumar	Economy	4774.00	Confirmed
+2F	Diya	Das	Economy	5170.00	Confirmed
+30A	Sneha	Gupta	Economy	5211.00	Refunded
+30C	Meera	Reddy	Economy	4479.00	Confirmed
+30D	Aisha	Gupta	Premium Economy	8388.00	Refunded
+30E	Aisha	Nair	Economy	4585.00	Confirmed
+3A	Riya	Gupta	Economy	4530.00	Confirmed
+3B	Aditya	Das	Economy	4437.00	Confirmed
+3C	Pooja	Das	Economy	4969.00	Confirmed
+3D	Rahul	Sharma	Economy	4587.00	Confirmed
+3E	Neha	Kumar	Economy	4830.00	Confirmed
+3F	Kavya	Das	Economy	4676.00	Confirmed
+4A	Aisha	Verma	Economy	5348.00	Refunded
+4C	Priya	Iyer	Premium Economy	8334.00	Refunded
+4D	Rahul	Singh	Economy	4921.00	Confirmed
+4E	Riya	Kumar	Economy	5200.00	Confirmed
+4F	Riya	Reddy	Economy	4528.00	Refunded
+5A	Priya	Menon	Economy	5292.00	Confirmed
+5C	Sanya	Reddy	Economy	5327.00	Confirmed
+5D	Sanya	Nair	Economy	5394.00	Refunded
+5E	Rahul	Menon	Economy	4959.00	Confirmed
+5F	Kavya	Menon	Economy	5248.00	Confirmed
+6A	Neha	Das	Economy	5169.00	Confirmed
+6B	Riya	Reddy	Economy	5076.00	Confirmed
+6D	Nikhil	Verma	Business	14823.00	Confirmed
+6E	Rahul	Sharma	Business	14888.00	Refunded
+6F	Ishaan	Nair	Economy	5391.00	Confirmed
+7A	Krishna	Singh	Economy	4767.00	Confirmed
+7C	Aisha	Sharma	Economy	5287.00	Confirmed
+7E	Priya	Das	Economy	5092.00	Confirmed
+8A	Pooja	Iyer	Economy	4586.00	Confirmed
+8B	Pooja	Menon	Economy	5357.00	Refunded
+8C	Meera	Joshi	Economy	5296.00	Confirmed
+8E	Pooja	Menon	Economy	4985.00	Refunded
+8F	Riya	Das	Economy	4638.00	Refunded
+9A	Priya	Nair	Premium Economy	7844.00	Confirmed
+9B	Aarav	Mehta	Economy	4938.00	Confirmed
+9D	Aisha	Iyer	Business	14386.00	Confirmed
+9E	Vikram	Gupta	Economy	5317.00	Confirmed
+9F	Aisha	Verma	Economy	4609.00	Confirmed
+booking_id	seat_number	price	pay_status	pay_method	boarding_status	bags	total_bag_kg
+10	10A	5374.00	Paid	UPI	NULL	1	12.06
+38	10C	13879.00	Paid	UPI	NULL	2	18.69
+97	10D	4762.00	Paid	UPI	NULL	1	10.62
+17	10F	4427.00	Paid	UPI	Boarded	1	7.63
+89	11A	4616.00	Paid	UPI	Boarded	1	8.85
+25	11C	5264.00	Paid	UPI	Boarded	1	16.80
+105	11D	5128.00	Paid	UPI	Boarded	1	7.76
+116	11E	5164.00	Pending	UPI	Boarded	1	12.57
+96	12A	5396.00	Paid	UPI	Boarded	1	23.01
+61	12E	4977.00	Paid	UPI	Boarded	1	16.42
+65	13C	5097.00	Paid	UPI	Boarded	1	10.92
+85	13D	5086.00	Paid	UPI	Boarded	1	8.77
+103	13E	4269.00	Paid	UPI	NULL	2	39.94
+30	14A	5351.00	Paid	UPI	Boarded	1	22.20
+71	14C	5264.00	Paid	UPI	Boarded	1	12.47
+94	14D	5012.00	Paid	UPI	NULL	1	16.02
+47	14E	4299.00	Paid	UPI	Boarded	1	16.50
+44	14F	4258.00	Paid	UPI	Boarded	2	34.99
+125	15A	5052.00	Paid	UPI	Boarded	2	33.53
+51	15B	5344.00	Paid	UPI	Boarded	1	18.74
+full_name	license_number	license_type	base
+Karan Patel	IND-PIL-2001	ATPL	HYD
+Suresh Kumar	IND-PIL-2002	ATPL	HYD
+iata_code	full_name	ground_role
+BLR	Arjun Mehta	Check-in Staff
+HYD	Meera Das	Baggage Handler
+HYD	Pooja Iyer	Ramp Agent
+iata_code	terminal_code	gate_number	gate_status
+BLR	T1	G1	Open
+BLR	T1	G2	Open
+BLR	T1	G3	Open
+BLR	T1	G4	Open
+BOM	T1	G1	Open
+BOM	T1	G2	Open
+BOM	T1	G3	Open
+BOM	T1	G4	Open
+DEL	T1	G1	Open
+DEL	T1	G2	Open
+DEL	T1	G3	Open
+DEL	T1	G4	Open
+HYD	T1	G1	Open
+HYD	T1	G2	Open
+HYD	T1	G3	Open
+HYD	T1	G4	Open
+MAA	T1	G1	Open
+MAA	T1	G2	Open
+MAA	T1	G3	Open
+MAA	T1	G4	Open
+airline_name	tail_number	model	capacity
+Air India	VT-SR004	Airbus A321	182
+Air India	VT-SR005	Airbus A320	168
+Air India	VT-SR006	Airbus A320	168
+Air India	VT-SR011	Airbus A320neo	180
+Air India	VT-SR012	Airbus A320neo	180
+IndiGo	VT-SR001	Airbus A320neo	180
+IndiGo	VT-SR002	Airbus A320neo	180
+IndiGo	VT-SR003	Airbus A321neo	222
+IndiGo	VT-SR009	ATR 72-600	78
+IndiGo	VT-SR013	Airbus A320neo	180
+IndiGo	VT-SR015	Airbus A321neo	222
+SpiceJet	VT-SR007	Boeing 737-8	189
+SpiceJet	VT-SR008	Boeing 737-8	189
+SpiceJet	VT-SR010	Boeing 737-8	189
+SpiceJet	VT-SR014	Boeing 737-700	148
+SpiceJet	VT-SR016	Boeing 737-8	189
+first_name	last_name	flight_number	scheduled_departure	baggage_seq	weight_kg	excess_fee_rs
+Ananya	Das	SG-903	2026-11-17 10:50:00	1	32.00	6000.00
+Krishna	Rao	AI-654	2026-11-17 07:15:00	1	32.00	6000.00
+Riya	Kumar	AI-701	2026-11-14 09:05:00	1	32.00	6000.00
+Pooja	Joshi	6E-531	2026-11-13 11:45:00	1	32.00	6000.00
+Riya	Das	6E-541	2026-11-12 07:40:00	2	32.00	6000.00
+Diya	Sharma	6E-511	2026-11-11 18:05:00	1	32.00	6000.00
+Aditya	Das	AI-671	2026-11-07 13:40:00	1	32.00	6000.00
+Aisha	Singh	6E-501	2026-11-06 08:00:00	1	32.00	6000.00
+Rahul	Reddy	AI-654	2026-11-03 07:15:00	1	32.00	6000.00
+Rohan	Nair	6E-502	2026-11-17 10:10:00	2	31.99	5995.00
+Aisha	Joshi	AI-682	2026-11-13 17:20:00	1	31.99	5995.00
+Priya	Das	6E-501	2026-11-12 08:00:00	1	31.99	5995.00
+Arjun	Sharma	SG-901	2026-11-07 09:30:00	2	31.99	5995.00
+Arjun	Nair	6E-502	2026-11-03 10:10:00	1	31.99	5995.00
+Aisha	Nair	6E-551	2026-11-18 19:10:00	1	31.98	5990.00
+Aisha	Patel	6E-502	2026-11-18 10:10:00	1	31.98	5990.00
+Aisha	Patel	AI-682	2026-11-15 17:20:00	1	31.98	5990.00
+Nikhil	Singh	6E-501	2026-11-14 08:00:00	1	31.98	5990.00
+Diya	Menon	AI-702	2026-11-09 12:20:00	2	31.98	5990.00
+Sneha	Kumar	AI-671	2026-11-08 13:40:00	1	31.98	5990.00
+full_name	email	credential	base
+Amit Verma	amit.verma@skyroute.aero	Flight Attendant	HYD
+Arjun Mehta	arjun.mehta@skyroute.aero	Check-in Staff	HYD
+Karan Patel	karan.patel@skyroute.aero	IND-PIL-2001	HYD
+Meera Das	meera.das@skyroute.aero	Baggage Handler	HYD
+Nitin Joshi	nitin.joshi@skyroute.aero	Flight Attendant	HYD
+Pooja Iyer	pooja.iyer@skyroute.aero	Ramp Agent	HYD
+Rajesh Gupta	rajesh.gupta@skyroute.aero	Purser	HYD
+Suresh Kumar	suresh.kumar@skyroute.aero	IND-PIL-2002	HYD

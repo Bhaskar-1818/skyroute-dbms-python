@@ -1,5 +1,5 @@
-"""Builds dbms/docs/SkyRoute_Slides.pptx (11 slides, themed).
-Run from repo root:  python dbms/docs/build_slides.py"""
+﻿"""Builds dbms/docs/report/SkyRoute_Slides.pptx (11 slides, themed).
+Run from repo root:  python dbms/tools/build_slides.py"""
 from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.util import Pt
@@ -32,7 +32,7 @@ def band(s, title, kicker="SKYROUTE"):
     foot = s.shapes.add_textbox(Pt(48), Pt(500), Pt(864), Pt(24)).text_frame
     foot.word_wrap = True
     r = foot.paragraphs[0].add_run()
-    r.text = "SkyRoute  ·  DBMS mini project  ·  skyroute_db (MySQL 8.0)"
+    r.text = "SkyRoute  Â·  DBMS mini project  Â·  skyroute_db (MySQL 8.0)"
     r.font.size, r.font.color.rgb = Pt(11), MUT
 
 
@@ -43,7 +43,7 @@ def body(s, points, top=150, size=19, gap=10):
         p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
         p.space_after = Pt(gap)
         r = p.add_run()
-        r.text = "▸ " + lead + ("  " if rest else "")
+        r.text = "â–¸ " + lead + ("  " if rest else "")
         r.font.size, r.font.bold = Pt(size), True
         r.font.color.rgb = NAVY
         if rest:
@@ -63,11 +63,11 @@ def cover():
     tx = s.shapes.add_textbox(Pt(60), Pt(120), Pt(840), Pt(300)).text_frame
     tx.word_wrap = True
     for txt, sz, col, bold in [
-            ("SKYROUTE  ✈", 20, AMBER, True),
+            ("SKYROUTE  âœˆ", 20, AMBER, True),
             ("Airline Booking, Baggage & Staff Operations", 44, RGBColor(255, 255, 255), True),
-            ("Multi-airport database · 16 tables · 336 departures · ~34,000 bookings",
+            ("Multi-airport database Â· 16 tables Â· 336 departures Â· ~34,000 bookings",
              20, RGBColor(207, 227, 247), False),
-            ("Views · trigger · procedure · transactions · indexes · Flask staff portal",
+            ("Views Â· trigger Â· procedure Â· transactions Â· indexes Â· Flask staff portal",
              20, RGBColor(207, 227, 247), False)]:
         p = tx.add_paragraph() if tx.paragraphs[0].text else tx.paragraphs[0]
         r = p.add_run()
@@ -111,7 +111,7 @@ cover()
 s = prs.slides.add_slide(blank)
 band(s, "The problem: five failures, five mechanisms")
 body(s, [("Double seat booking", "UNIQUE(departure, seat) refuses it in storage."),
-         ("Gate clash", "UNIQUE(terminal, gate) — one gate, one row."),
+         ("Gate clash", "UNIQUE(terminal, gate) â€” one gate, one row."),
          ("Wrong baggage fee", "one fee rule in booking_receipt_view: 20 kg free, Rs 500/kg."),
          ("No shared database", "one skyroute_db for all five airports."),
          ("Overselling", "trigger refuses sales past aircraft capacity.")])
@@ -119,49 +119,49 @@ body(s, [("Double seat booking", "UNIQUE(departure, seat) refuses it in storage.
 s = prs.slides.add_slide(blank)
 band(s, "ER model: timetable vs dated reality")
 body(s, [("Masters", "Airport, Airline, Aircraft, Terminal, Gate."),
-         ("Flight → Departures", "timetable template owns unlimited dated departures."),
+         ("Flight â†’ Departures", "timetable template owns unlimited dated departures."),
          ("Booking bridge", "passengers meet departures; bags hang off bookings (weak)."),
          ("Staff", "Employees + three role tables, 1-1 on the shared key.")])
 
 table_slide("Schema: 16 tables, every key earns its place",
             ["Table", "Primary key", "Rule that matters"],
-            [["Flights", "flight_id", "UNIQUE number · dep ≠ arr airports"],
+            [["Flights", "flight_id", "UNIQUE number Â· dep â‰  arr airports"],
              ["Departures", "departure_id", "UNIQUE(flight, date-time)"],
              ["Bookings", "booking_id", "UNIQUE(departure, seat)"],
-             ["Baggage", "(booking, seq)", "weak entity · 0 < kg ≤ 100"],
+             ["Baggage", "(booking, seq)", "weak entity Â· 0 < kg â‰¤ 100"],
              ["Gates", "gate_id", "UNIQUE(terminal, gate)"],
              ["Payments / Check-Ins", "own ids", "UNIQUE booking (one-to-one)"]])
 
 s = prs.slides.add_slide(blank)
 band(s, "Scale: designed unlimited, demonstrated at volume")
-body(s, [("Design", "integer keys + indexed FKs — nothing changes at 10× volume."),
-          ("Generator", "deterministic (seed 42): 21 days, 35–80% load factors."),
-         ("Verified", "zero duplicate seats · all foreign keys in range."),
-         ("Payoff", "load factor, revenue, gate use — one query each.")])
+body(s, [("Design", "integer keys + indexed FKs â€” nothing changes at 10Ã— volume."),
+          ("Generator", "deterministic (seed 42): 21 days, 35â€“80% load factors."),
+         ("Verified", "zero duplicate seats Â· all foreign keys in range."),
+         ("Payoff", "load factor, revenue, gate use â€” one query each.")])
 
 s = prs.slides.add_slide(blank)
 band(s, "Advanced SQL: rules live in the database")
 body(s, [("flight_board_view", "the whole departure board in one query."),
          ("booking_receipt_view", "price + computed baggage fee per booking."),
          ("trg_booking_capacity", "BEFORE INSERT trigger: full flight? refused (SQLSTATE 45000)."),
-         ("MakeBooking", "seat + payment in one transaction — both or neither.")])
+         ("MakeBooking", "seat + payment in one transaction â€” both or neither.")])
 
 s = prs.slides.add_slide(blank)
 band(s, "Transactions: ACID you can watch")
-body(s, [("Demo A — commit", "booking + payment appear together."),
-         ("Demo B — rollback", "failed payment → seat provably still free."),
-         ("Demo C — isolation", "two sessions: old value visible until COMMIT.")])
+body(s, [("Demo A â€” commit", "booking + payment appear together."),
+         ("Demo B â€” rollback", "failed payment â†’ seat provably still free."),
+         ("Demo C â€” isolation", "two sessions: old value visible until COMMIT.")])
 
 s = prs.slides.add_slide(blank)
 band(s, "Indexing: measure, don't guess")
-body(s, [("No cargo cult", "InnoDB already indexes FK columns — untouched."),
-         ("4 workload indexes", "status · departure date · surname · bag weight."),
+body(s, [("No cargo cult", "InnoDB already indexes FK columns â€” untouched."),
+         ("4 workload indexes", "status Â· departure date Â· surname Â· bag weight."),
          ("Proof", "before/after EXPLAIN pairs: fewer rows examined.")])
 
 s = prs.slides.add_slide(blank)
 band(s, "Access control + testing")
-body(s, [("3 roles", "admin = all · staff = read-write · viewer = read-only, SHOW GRANTS proof."),
-         ("30 checks", "joins · analytics · rejections (ERROR 1062 live) · atomicity · grants · scale."),
+body(s, [("3 roles", "admin = all Â· staff = read-write Â· viewer = read-only, SHOW GRANTS proof."),
+         ("30 checks", "joins Â· analytics Â· rejections (ERROR 1062 live) Â· atomicity Â· grants Â· scale."),
          ("Every check", "states its expected result before the run.")])
 
 s = prs.slides.add_slide(blank)
@@ -173,9 +173,10 @@ body(s, [("Airplane Management System", "staff portal (PIN) + traveler login (ID
 
 s = prs.slides.add_slide(blank)
 band(s, "Result: every problem closed, everything tested")
-body(s, [("Coverage", "all 5 problem items → named mechanisms → tests."),
+body(s, [("Coverage", "all 5 problem items â†’ named mechanisms â†’ tests."),
          ("Volume", "~34k bookings answered in single queries."),
-         ("Next", "live demo: login → book → re-book (refused) → manifest.")])
+         ("Next", "live demo: login â†’ book â†’ re-book (refused) â†’ manifest.")])
 
-prs.save("dbms/docs/SkyRoute_Slides.pptx")
+prs.save("dbms/docs/report/SkyRoute_Slides.pptx")
 print("slides written")
+

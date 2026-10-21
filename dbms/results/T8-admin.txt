@@ -1,0 +1,82 @@
+Tables_in_skyroute_db
+aircraft
+airlines
+airports
+baggage
+booking_receipt_view
+bookings
+check_ins
+crew_members
+departures
+employees
+flight_board_view
+flights
+gates
+ground_staff
+passengers
+payments
+pilots
+terminals
+tbl	row_count
+Airports	5
+Airlines	3
+Aircraft	16
+Flights	16
+Departures	336
+Terminals	5
+Gates	20
+Passengers	4000
+Bookings	34708
+Baggage	43314
+Payments	34708
+Check_Ins	11544
+Employees	8
+Pilots	2
+Crew_Members	3
+Ground_Staff	3
+Field	Type	Null	Key	Default	Extra
+flight_id	int	NO	PRI	NULL	auto_increment
+flight_number	varchar(10)	NO	UNI	NULL	
+airline_id	int	NO	MUL	NULL	
+departure_airport_id	int	NO	MUL	NULL	
+arrival_airport_id	int	NO	MUL	NULL	
+sched_departure	time	NO		NULL	
+sched_arrival	time	NO		NULL	
+flight_status	enum('Active','Suspended')	NO		Active	
+flight_id	flight_number	airline_id	departure_airport_id	arrival_airport_id	sched_departure	sched_arrival	flight_status
+1	6E-501	1	1	2	08:00:00	09:20:00	Active
+2	6E-502	1	2	1	10:10:00	11:30:00	Active
+3	6E-511	1	1	3	18:05:00	19:35:00	Active
+4	AI-654	2	4	3	07:15:00	09:25:00	Active
+5	AI-671	2	3	5	13:40:00	15:35:00	Active
+Field	Type	Null	Key	Default	Extra
+departure_id	int	NO	PRI	NULL	auto_increment
+flight_id	int	NO	MUL	NULL	
+scheduled_departure	datetime	NO	MUL	NULL	
+scheduled_arrival	datetime	NO		NULL	
+actual_departure	datetime	YES		NULL	
+actual_arrival	datetime	YES		NULL	
+departure_status	enum('Scheduled','Boarding','Departed','Arrived','Delayed','Cancelled')	NO		Scheduled	
+aircraft_id	int	YES	MUL	NULL	
+gate_id	int	YES	MUL	NULL	
+departure_id	flight_id	scheduled_departure	scheduled_arrival	actual_departure	actual_arrival	departure_status	aircraft_id	gate_id
+1	1	2026-11-01 08:00:00	2026-11-01 09:20:00	2026-11-01 08:00:00	2026-11-01 09:20:00	Arrived	1	1
+2	2	2026-11-01 10:10:00	2026-11-01 11:30:00	2026-11-01 10:10:00	2026-11-01 11:30:00	Arrived	2	6
+3	3	2026-11-01 18:05:00	2026-11-01 19:35:00	2026-11-01 18:05:00	2026-11-01 19:35:00	Arrived	3	3
+4	4	2026-11-01 07:15:00	2026-11-01 09:25:00	2026-11-01 07:15:00	2026-11-01 09:25:00	Arrived	4	16
+5	5	2026-11-01 13:40:00	2026-11-01 15:35:00	2026-11-01 13:40:00	2026-11-01 15:35:00	Arrived	5	9
+Field	Type	Null	Key	Default	Extra
+booking_id	int	NO	PRI	NULL	auto_increment
+passenger_id	int	NO	MUL	NULL	
+departure_id	int	NO	MUL	NULL	
+seat_number	varchar(5)	NO		NULL	
+travel_class	enum('Economy','Premium Economy','Business','First')	NO		Economy	
+price	decimal(10,2)	NO		NULL	
+booking_status	enum('Pending','Confirmed','Cancelled','Refunded')	NO	MUL	Confirmed	
+booked_at	datetime	NO		CURRENT_TIMESTAMP	DEFAULT_GENERATED
+booking_id	passenger_id	departure_id	seat_number	travel_class	price	booking_status	booked_at
+1	895	1	20B	Economy	4505.00	Refunded	2026-11-01 08:00:00
+2	2515	1	1E	Economy	5090.00	Confirmed	2026-11-01 08:00:00
+3	2636	1	2D	Premium Economy	8254.00	Confirmed	2026-11-01 08:00:00
+4	436	1	15C	Economy	4867.00	Confirmed	2026-11-01 08:00:00
+5	3739	1	3C	Economy	4969.00	Confirmed	2026-11-01 08:00:00

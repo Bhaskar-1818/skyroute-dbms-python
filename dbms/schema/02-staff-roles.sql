@@ -78,3 +78,15 @@ FLUSH PRIVILEGES;
 SHOW GRANTS FOR 'sky_admin'@'localhost';
 SHOW GRANTS FOR 'sky_staff'@'localhost';
 SHOW GRANTS FOR 'sky_viewer'@'localhost';
+
+-- C11b: REVOKE. Step 7 asks for grant AND revoke, so the privilege is shown
+-- being taken away, not just given. Proof of least privilege in both
+-- directions: sky_staff loses INSERT/UPDATE, keeps SELECT, and is restored.
+REVOKE INSERT, UPDATE ON skyroute_db.* FROM 'sky_staff'@'localhost';
+SHOW GRANTS FOR 'sky_staff'@'localhost';   -- now SELECT only
+
+-- Restore the working grant so the app and later scripts still run.
+GRANT SELECT, INSERT, UPDATE ON skyroute_db.* TO 'sky_staff'@'localhost';
+FLUSH PRIVILEGES;
+SHOW GRANTS FOR 'sky_staff'@'localhost';   -- SELECT, INSERT, UPDATE again
+

@@ -1,0 +1,5 @@
+inserted_before_failure	visible_now
+4001	1
+ERROR 1062 (23000) at line 14: Duplicate entry 'DEMO-PP-1' for key 'passengers.uq_passenger_passport'
+rows_left_behind
+0

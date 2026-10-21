@@ -1,0 +1,15 @@
+Grants for sky_admin@localhost
+GRANT USAGE ON *.* TO `sky_admin`@`localhost`
+GRANT ALL PRIVILEGES ON `skyroute_db`.* TO `sky_admin`@`localhost`
+Grants for sky_staff@localhost
+GRANT USAGE ON *.* TO `sky_staff`@`localhost`
+GRANT SELECT, INSERT, UPDATE ON `skyroute_db`.* TO `sky_staff`@`localhost`
+Grants for sky_viewer@localhost
+GRANT USAGE ON *.* TO `sky_viewer`@`localhost`
+GRANT SELECT ON `skyroute_db`.* TO `sky_viewer`@`localhost`
+Grants for sky_staff@localhost
+GRANT USAGE ON *.* TO `sky_staff`@`localhost`
+GRANT SELECT ON `skyroute_db`.* TO `sky_staff`@`localhost`
+Grants for sky_staff@localhost
+GRANT USAGE ON *.* TO `sky_staff`@`localhost`
+GRANT SELECT, INSERT, UPDATE ON `skyroute_db`.* TO `sky_staff`@`localhost`
